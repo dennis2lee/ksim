@@ -68,15 +68,6 @@ ksim/
 │   ├── literature_recalibration.py     Before/after comparison with published data
 │   └── novelty_and_gap_analysis.py     RCT vs n-of-1 gap quantification
 │
-├── manuscript/           Paper and figures
-│   ├── manuscript.md                   Full manuscript (CPT:PSP format)
-│   └── figures/
-│       ├── make_figures.py             Generate Figures 2–4 from simulation data
-│       ├── figure1_protocol.svg        Protocol flowchart (hand-crafted SVG)
-│       ├── figure2_performance.*       MDE curves + subgroup detection rates
-│       ├── figure3_evsi.*              Classification-efficiency frontier
-│       └── figure4_robustness.*        Robustness forest plot (8 scenarios)
-│
 ├── LIMITATIONS.md        Known limitations and anticipated reviewer responses
 ├── FUTURE_WORK.md        Research roadmap (14 directions, prioritized)
 └── README.md             This file
@@ -101,9 +92,6 @@ python validation/reproduce_manuscript_numbers.py
 for f in simulations/*.py protocol/*.py validation/*.py; do
   echo "=== $f ===" && python "$f"
 done
-
-# Generate publication figures (requires matplotlib)
-python manuscript/figures/make_figures.py
 ```
 
 ## Key Results
