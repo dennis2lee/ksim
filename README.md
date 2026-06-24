@@ -134,7 +134,7 @@ The decision engine is implemented in `protocol/clinical_protocol.py` as the
 
 ## License
 
-Released under the [MIT License](LICENSE). Copyright (c) 2026 Pyeongwoo Lee.
+Released under the [MIT License](LICENSE). Copyright (c) 2026 Pyeongwoo Lee and Timothy Juheon Lee.
 
 This project is for research and educational purposes. Simulation parameters
 are illustrative and calibrated to published data — not for clinical dosing
@@ -151,4 +151,5 @@ Disease. 2026. https://github.com/dennis2lee/ksim
 ## Author
 
 Pyeongwoo Lee — Independent Researcher, Sunnyvale, CA, USA
+Timothy Juheon Lee — Independent Researcher, Sunnyvale, CA, USA
 Contact: dennis2.lee@gmail.com
