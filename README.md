@@ -134,6 +134,8 @@ The decision engine is implemented in `protocol/clinical_protocol.py` as the
 
 ## License
 
+Released under the [MIT License](LICENSE). Copyright (c) 2026 Pyeongwoo Lee.
+
 This project is for research and educational purposes. Simulation parameters
 are illustrative and calibrated to published data — not for clinical dosing
 decisions without empirical validation.
