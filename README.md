@@ -4,7 +4,7 @@ Simulation framework for designing and validating personalized n-of-1 crossover
 trials that detect individual indoxyl sulfate (IS) reduction from gut-clearance
 interventions in chronic kidney disease (CKD stage 3b–4).
 
-**Paper**: Lee P. "Measurement Noise Optimization as a Design Lever for N-of-1
+**Paper**: Lee P, Lee TJ. "Measurement Noise Optimization as a Design Lever for N-of-1
 Trials: In-Silico Validation of Personalized Gut-Clearance Protocols in Chronic
 Kidney Disease." (2026, targeting CPT: Pharmacometrics & Systems Pharmacology)
 
@@ -143,7 +143,7 @@ decisions without empirical validation.
 ## Citation
 
 ```
-Lee P. Measurement Noise Optimization as a Design Lever for N-of-1 Trials:
+Lee P, Lee TJ. Measurement Noise Optimization as a Design Lever for N-of-1 Trials:
 In-Silico Validation of Personalized Gut-Clearance Protocols in Chronic Kidney
 Disease. 2026. https://github.com/dennis2lee/ksim
 ```
