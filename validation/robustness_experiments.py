@@ -132,6 +132,7 @@ def gen_baseline():
     rng = np.random.default_rng(777)
     egfr = np.clip(rng.normal(22, 6, N_PAT), 10, 35)
     gut = np.clip(rng.normal(1.0, 0.35, N_PAT), 0.3, 1.8)
+    slope = np.clip(rng.normal(-2.0, 0.8, N_PAT), -5.0, -0.5)  # align RNG stream with canonical cohort (reproduce_manuscript_numbers.py)
     bis = (25.0/egfr)**1.2 * np.clip(rng.normal(1.0, 0.30, N_PAT), 0.3, 2.5) * 5.4
     tau = np.clip(rng.normal(0.30 * gut, 0.14), 0, 0.70)
     nr = rng.random(N_PAT) < 0.18
@@ -152,6 +153,7 @@ print(f"\n(A) LOG-NORMAL IS BASELINE (right-skewed)")
 rng_a = np.random.default_rng(777)
 egfr_a = np.clip(rng_a.normal(22, 6, N_PAT), 10, 35)
 gut_a = np.clip(rng_a.normal(1.0, 0.35, N_PAT), 0.3, 1.8)
+slope_a = np.clip(rng_a.normal(-2.0, 0.8, N_PAT), -5.0, -0.5)  # align RNG stream with canonical cohort
 # log-normal: mean=5.4, sd=3.6 -> mu=log(5.4^2/sqrt(5.4^2+3.6^2)), sigma=sqrt(log(1+(3.6/5.4)^2))
 ln_sigma = np.sqrt(np.log(1 + (3.6/5.4)**2))
 ln_mu = np.log(5.4) - ln_sigma**2/2
