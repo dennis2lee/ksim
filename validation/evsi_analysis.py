@@ -63,15 +63,24 @@ def run_at_cv(cv, seed=800):
 
 print("="*82)
 print("EVSI ANALYSIS: marginal value of CV reduction")
+print("(sens/spec/NCC = mean over 50 independent single-run replications, seeds 700-749)")
 print("="*82)
 print(f"  {'CV':>6}{'MDE':>7}{'sens':>8}{'spec':>8}{'NCC':>6}{'dNCC/dCV':>10}{'draws':>7}{'note'}")
 print(f"  {'-'*62}")
 
 cvs = [0.30, 0.28, 0.25, 0.22, 0.20, 0.18, 0.15, 0.13, 0.12, 0.10]
+SEEDS = list(range(700, 750))  # 50 independent single-run replications -> stable estimates
 results = []
 for cv in cvs:
-    r = run_at_cv(cv)
-    results.append(r)
+    runs = [run_at_cv(cv, seed=s) for s in SEEDS]
+    agg = dict(
+        cv=cv,
+        mde=runs[0]['mde'],
+        sens=np.mean([x['sens'] for x in runs]),
+        spec=np.mean([x['spec'] for x in runs]),
+        ncc=np.mean([x['ncc'] for x in runs]),
+    )
+    results.append(agg)
 
 for i, r in enumerate(results):
     if i > 0:
@@ -86,7 +95,7 @@ for i, r in enumerate(results):
     elif r['cv'] == 0.15: note = "<- target CV"
     elif r['cv'] == 0.10: note = "<- diminishing returns"
     print(f"  {r['cv']:>6.2f}{r['mde']*100:>6.0f}%{r['sens']*100:>7.0f}%{r['spec']*100:>7.0f}%"
-          f"{r['ncc']:>6}{marginal:>9.1f}{draws:>7}  {note}")
+          f"{r['ncc']:>6.0f}{marginal:>9.1f}{draws:>7}  {note}")
 
 print(f"""
   INTERPRETATION:
@@ -118,5 +127,5 @@ for r in results:
     extra_cost = extra_draws * 15
     delta_ncc = r['ncc'] - base_ncc
     cost_per = extra_cost / delta_ncc if delta_ncc > 0 else float('inf')
-    print(f"  {r['cv']:>6.2f}{extra_draws:>13}{extra_cost:>11}${r['ncc']:>6}"
+    print(f"  {r['cv']:>6.2f}{extra_draws:>13}{extra_cost:>11}${r['ncc']:>6.0f}"
           f"{'${:.0f}'.format(cost_per) if cost_per < 10000 else 'n/a':>15}")

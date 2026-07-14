@@ -59,11 +59,12 @@ ksim/
 │   ├── nof1_weak_rescue.py             Weak responder strategies (adaptive + CV reduction)
 │   └── clinical_protocol.py            Step-by-step protocol + classify_patient() function
 │
-├── validation/           7 scripts — robustness, calibration, and reproducibility
+├── validation/           8 scripts — robustness, calibration, and reproducibility
 │   ├── robustness_experiments.py       8 distributional stress tests (N=1000 each)
-│   ├── evsi_analysis.py                Classification-efficiency frontier (NCC vs CV)
+│   ├── evsi_analysis.py                Classification-efficiency frontier (NCC vs CV, 50-seed mean)
 │   ├── large_scale_validation.py       N=1000 end-to-end + published RCT reproduction
 │   ├── reproduce_manuscript_numbers.py Single script regenerating all manuscript figures
+│   ├── threshold_sensitivity.py        Responder-definition threshold sweep (5/10/15/20%)
 │   ├── sensitivity_analysis.py         Tornado sweep across 8 literature-calibrated params
 │   ├── literature_recalibration.py     Before/after comparison with published data
 │   └── novelty_and_gap_analysis.py     RCT vs n-of-1 gap quantification
@@ -106,6 +107,7 @@ done
 | Peak NCC (classification-efficiency frontier) | CV ≈ 0.12–0.15 | `validation/evsi_analysis.py` |
 | Average protocol duration | 26.7 weeks | `validation/reproduce_manuscript_numbers.py` |
 | Patients needing Stage 2 | 23% | same |
+| Specificity across responder thresholds (θ 5→20%) | 89.3→65.8% | `validation/threshold_sensitivity.py` |
 
 ## Parameter Sources
 
