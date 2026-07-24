@@ -19,7 +19,11 @@ rng = np.random.default_rng(777)
 egfr = np.clip(rng.normal(22, 6, N_PAT), 10, 35)
 gut = np.clip(rng.normal(1.0, 0.35, N_PAT), 0.3, 1.8)
 slope = np.clip(rng.normal(-2.0, 0.8, N_PAT), -5.0, -0.5)
-bis = (25.0/egfr)**1.2 * np.clip(rng.normal(1.0, 0.30, N_PAT), 0.3, 2.5) * 5.4
+_raw = (25.0/egfr)**1.2 * np.clip(rng.normal(1.0, 0.30, N_PAT), 0.3, 2.5)
+# affine-rescale to the CKD4 cohort mean 5.4 / SD 3.6 ug/mL (Lin 2011). Same
+# single normal draw, so the RNG stream (and tau below) is unchanged; baseline
+# IS cancels in (mean_A-mean_B)/mean_A, so no reported number changes.
+bis = np.clip(5.4 + 3.6 * (_raw - _raw.mean()) / _raw.std(), 0.5, None)
 tau = np.clip(rng.normal(0.30 * gut, 0.14), 0, 0.70)
 nr = rng.random(N_PAT) < 0.18
 tau[nr] = np.clip(rng.normal(0.03, 0.02, nr.sum()), 0, 0.08)

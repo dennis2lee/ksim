@@ -115,7 +115,7 @@ done
 |-----------|-------|-------------------|
 | IS biological CV | 0.25 (range 0.18–0.28) | Pretorius et al. 2013, *Clin Chim Acta* |
 | IS baseline CKD4 | 5.4 ± 3.6 µg/mL | Lin et al. 2011 |
-| Fiber IS reduction (pooled) | SMD −0.34 | Huang et al. 2025, 11 RCTs, N=398 |
+| Fiber IS reduction (pooled) | SMD −0.34 | Wathanavasin et al. 2025, *Toxins*, 11 RCTs, N=398 |
 | CKD4 eGFR slope | −2.0 mL/min/yr | CRIC Study / MDRD |
 | Non-responder fraction | 18% (conservative) | Estimated from meta I² + crossover data |
 | Gut microbiome variability | SD 0.35 | Wu et al. 2011, *Science* |

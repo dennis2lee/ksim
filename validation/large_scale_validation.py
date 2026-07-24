@@ -39,9 +39,14 @@ rng = np.random.default_rng(777)
 egfr    = np.clip(rng.normal(22, 6, N_PAT), 10, 35)
 gut_var = np.clip(rng.normal(1.0, 0.35, N_PAT), 0.3, 1.8)
 slope   = np.clip(rng.normal(-2.0, 0.8, N_PAT), -5.0, -0.5)
-base_is = (25.0/egfr)**1.2 * np.clip(rng.normal(1.0, 0.30, N_PAT), 0.3, 2.5)
-# absolute IS in ug/mL: CKD4 mean ~5.4 (Lin 2011)
-base_is_abs = base_is * 5.4
+# baseline total IS shape ~ (25/eGFR)^1.2, then affine-rescaled to the CKD4
+# cohort mean 5.4 / SD 3.6 ug/mL (Lin 2011). The rescale preserves the RNG
+# stream (one normal draw of size N_PAT) and the eGFR ranking, and because
+# baseline IS cancels in the ratio estimator (mean_A-mean_B)/mean_A it does
+# not change any operating characteristic.
+_raw = (25.0/egfr)**1.2 * np.clip(rng.normal(1.0, 0.30, N_PAT), 0.3, 2.5)
+base_is_abs = np.clip(5.4 + 3.6 * (_raw - _raw.mean()) / _raw.std(), 0.5, None)
+base_is = base_is_abs
 
 # true individual IS reduction (literature-calibrated)
 tau = np.clip(rng.normal(0.30 * gut_var, 0.14), 0, 0.70)
@@ -177,9 +182,11 @@ print(f"\n{'='*86}")
 print("(4) 'WHAT IF' — applying our protocol to published RCT populations")
 print(f"{'='*86}")
 
-def simulate_published(label, n, tau_mean, tau_sd, baseline_mean, baseline_sd, nr_frac):
-    """Simulate our n-of-1 protocol on a cohort matching published summary stats."""
-    rng2 = np.random.default_rng(hash(label) % 2**31)
+PUB_SEEDS = list(range(700, 750))  # 50 single-run replications, matching Table S1
+
+def _simulate_published_once(seed, n, tau_mean, tau_sd, baseline_mean, baseline_sd, nr_frac):
+    """One single-run pass of the protocol on a cohort matching published stats."""
+    rng2 = np.random.default_rng(seed)
     tau_p = np.clip(rng2.normal(tau_mean, tau_sd, n), 0, 0.70)
     nr_p = rng2.random(n) < nr_frac
     tau_p[nr_p] = np.clip(rng2.normal(0.03, 0.02, nr_p.sum()), 0, 0.08)
@@ -204,9 +211,29 @@ def simulate_published(label, n, tau_mean, tau_sd, baseline_mean, baseline_sd, n
     classified = np.array(classified)
     tp = ((classified=='R') & resp).sum()
     fp = ((classified=='R') & ~resp).sum()
-    sens = tp/resp.sum() if resp.sum()>0 else 0
-    spec = 1 - fp/(~resp).sum() if (~resp).sum()>0 else 1
-    return n, resp.sum(), tp, fp, sens, spec, np.mean(tau_p)
+    sens = tp/resp.sum() if resp.sum()>0 else np.nan
+    spec = 1 - fp/(~resp).sum() if (~resp).sum()>0 else np.nan
+    return resp.sum(), tp, fp, sens, spec, np.mean(tau_p)
+
+def simulate_published(label, n, tau_mean, tau_sd, baseline_mean, baseline_sd, nr_frac):
+    """Mean single-run operating characteristics over PUB_SEEDS fixed seeds.
+
+    The former single draw used np.random.default_rng(hash(label) % 2**31);
+    Python salts str hashes per process (PYTHONHASHSEED), so that table could
+    not be reproduced run to run and, at n=26-40, swung 20+ points between
+    processes. Averaging over 50 fixed seeds gives a stable, reproducible
+    estimate, the same convention Table S1 uses.
+    """
+    runs = [_simulate_published_once(s, n, tau_mean, tau_sd,
+                                     baseline_mean, baseline_sd, nr_frac)
+            for s in PUB_SEEDS]
+    resp = np.mean([r[0] for r in runs])
+    tp   = np.mean([r[1] for r in runs])
+    fp   = np.mean([r[2] for r in runs])
+    sens = np.nanmean([r[3] for r in runs])
+    spec = np.nanmean([r[4] for r in runs])
+    mt   = np.mean([r[5] for r in runs])
+    return n, resp, tp, fp, sens, spec, mt
 
 # Published cohort reproductions (summary statistics from literature)
 cohorts = [
