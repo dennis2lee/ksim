@@ -54,9 +54,9 @@ the entire clinical benefit estimate is meaningless."
   as f_tox-dependent or f_tox-independent.
 - **Publication framing**: frame as protocol methodology, not clinical efficacy.
 
-## (d) CV 0.22 → 0.15 — is this clinically achievable?
+## (d) CV 0.25 → 0.15 — is this clinically achievable?
 
-**Critique**: "You assume measurement noise can be reduced by 32%. Is there evidence
+**Critique**: "You assume measurement noise can be reduced by 40%. Is there evidence
 this is practical in a CKD outpatient setting?"
 
 **Response**:
@@ -67,7 +67,7 @@ this is practical in a CKD outpatient setting?"
   - Dietary: CV 8–10% (reducible by fasting protocol)
   - Day-to-day: CV 8–12% (reducible by within-visit duplicate)
 - Standardization (AM fasting + duplicate draw) targets the two largest
-  reducible components. CV reduction from 0.22 to ~0.15 requires only:
+  reducible components. CV reduction from 0.25 to ~0.15 requires only:
   **one extra blood tube per visit** (duplicate) + standardized timing.
 - This is a minimal, low-cost intervention in any outpatient setting.
 - **Mitigation in code**: `sensitivity_analysis.py` section (5) shows feasibility
@@ -76,12 +76,13 @@ this is practical in a CKD outpatient setting?"
 
 ## (e) Single-patient origin — generalizability
 
-**Critique**: "The model started from one specific patient (74F, hypertensive, non-diabetic).
-How general are the results?"
+**Critique**: "Are the results driven by one narrow patient profile?
+How general are they?"
 
 **Response**:
-- The virtual cohort (`nof1_virtual_cohort.py`) already broadens to N=100 patients
-  with heterogeneous age (60–85), eGFR (10–35), gut variability, and treatment effects.
+- The reported analysis is cohort-based from the start (no single-patient origin): a virtual
+  cohort of N=1,000 patients (`reproduce_manuscript_numbers.py`, `robustness_experiments.py`)
+  with heterogeneous eGFR (10–35 mL/min/1.73 m²), gut variability, and treatment effects.
 - **Mitigation in code**: `sensitivity_analysis.py` section (7) explicitly tests
   5 different populations (younger, older, diabetic, aggressive CKD5) and shows
   the protocol maintains >80% power across most scenarios.
@@ -98,11 +99,11 @@ formal multiplicity adjustment. The Bayesian shrinkage is simplistic."
 **Response**:
 - **MDE formula**: The normal approximation is standard for paired-comparison
   designs with n ≥ 4 per arm (Duan et al., *J Clin Epidemiol* 2013). With
-  N_REP=500 Monte Carlo replications per patient, we validate the approximation
+  N_REP=200 Monte Carlo replications per patient, we validate the approximation
   empirically — simulated power matches analytical predictions within ±3 pp.
 - **Multiplicity**: The adaptive design uses a two-stage approach without formal
   alpha-spending adjustment. The empirical FP rate (measured from simulation)
-  is reported directly — it rises from 5% to 12%. This is transparent.
+  is reported directly — it rises from 5% to ~14%. This is transparent.
   Formal O'Brien-Fleming spending could reduce FP to ~8% at modest power cost.
 - **Bayesian shrinkage**: We explicitly note that simple EB fails for bimodal
   populations and recommend mixture-model EB. The threshold-based detection
@@ -111,9 +112,9 @@ formal multiplicity adjustment. The Bayesian shrinkage is simplistic."
   FP can be reduced to ~6% by raising the threshold by 20% (MDE × 1.2),
   losing only ~5 pp overall power.
 
-## (g) FP 12% — clinical implications
+## (g) FP 14% — clinical implications
 
-**Critique**: "A 12% false positive rate means 1 in 8 non-responders continues an
+**Critique**: "A 14% false positive rate means about 1 in 7 non-responders continues an
 ineffective regimen. Is this acceptable?"
 
 **Response**:
@@ -128,5 +129,5 @@ ineffective regimen. Is this acceptable?"
 - The protocol includes a **quarterly deprescribe review** (from `redteam_loop.py`):
   false positives will be caught as the patient's IS fails to show sustained benefit
   on follow-up monitoring.
-- **Bottom line**: for a low-risk, dietary intervention, 12% FP with quarterly
+- **Bottom line**: for a low-risk, dietary intervention, 14% FP with quarterly
   review is clinically defensible.
