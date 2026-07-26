@@ -28,8 +28,15 @@ WK_W   = 2
 MDE_S1 = 1.645 * CV_STD * np.sqrt(2.0 / N_S1)
 MDE_S2 = 1.645 * CV_STD * np.sqrt(2.0 / (N_S1 + N_S2))
 
-def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777):
-    """Full adaptive protocol. Returns per-patient classification arrays."""
+def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777,
+                 egfr0=None, slope=None, drift=False):
+    """Full adaptive protocol. Returns per-patient classification arrays.
+
+    With drift=True, each measurement is multiplied by a time-dependent
+    eGFR-decline factor (egfr0/eGFR(week))**1.2 under the fixed A-then-B
+    schedule. Drift is applied after the noise draw, so drift=False leaves
+    the RNG stream (and every reported number) unchanged.
+    """
     rng = np.random.default_rng(seed)
     true_resp = tau >= 0.10
 
@@ -51,8 +58,8 @@ def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777)
             t = tau[p]
             cv = cv_per_patient[p]
 
-            def draw_measures(n, on_treatment, prev_on=False):
-                """Draw n IS measurements with optional correlation and carryover."""
+            def draw_measures(n, on_treatment, prev_on=False, weeks=None):
+                """Draw n IS measurements with optional correlation, carryover, drift."""
                 if rho > 0:
                     raw = np.zeros(n)
                     raw[0] = rng.normal(0, cv)
@@ -62,13 +69,17 @@ def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777)
                     raw = rng.normal(0, cv, n)
 
                 effect = t if on_treatment else (t * carryover if prev_on else 0)
-                return b * (1 - effect) * (1 + raw)
+                meas = b * (1 - effect) * (1 + raw)
+                if drift and weeks is not None:
+                    ew = egfr0[p] + slope[p] * (np.asarray(weeks) / 52.0)
+                    meas = meas * (egfr0[p] / ew) ** 1.2
+                return meas
 
-            # Stage 1: A1, B1, A2, B2
-            A1 = draw_measures(N_S1//2, False, False)
-            B1 = draw_measures(N_S1//2, True, False)
-            A2 = draw_measures(N_S1//2, False, True)  # after B1, carryover possible
-            B2 = draw_measures(N_S1//2, True, False)
+            # Stage 1: A1, B1, A2, B2 (fixed A-then-B; weeks = measurement timing)
+            A1 = draw_measures(N_S1//2, False, False, weeks=[2, 3, 4])
+            B1 = draw_measures(N_S1//2, True, False, weeks=[8, 9, 10])
+            A2 = draw_measures(N_S1//2, False, True, weeks=[14, 15, 16])  # after B1, carryover possible
+            B2 = draw_measures(N_S1//2, True, False, weeks=[20, 21, 22])
 
             A_s1 = np.concatenate([A1, A2])
             B_s1 = np.concatenate([B1, B2])
@@ -81,8 +92,8 @@ def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777)
                 rep_class[p] = 'N'
             else:
                 rep_s2[p] = True
-                A3 = draw_measures(N_S2, False, True)
-                B3 = draw_measures(N_S2, True, False)
+                A3 = draw_measures(N_S2, False, True, weeks=[26, 27, 28])
+                B3 = draw_measures(N_S2, True, False, weeks=[32, 33, 34])
                 A_all = np.concatenate([A_s1, A3])
                 B_all = np.concatenate([B_s1, B3])
                 ma_c, mb_c = A_all.mean(), B_all.mean()
@@ -139,9 +150,9 @@ def gen_baseline():
     nr = rng.random(N_PAT) < 0.18
     tau[nr] = np.clip(rng.normal(0.03, 0.02, nr.sum()), 0, 0.08)
     cv = np.full(N_PAT, CV_STD)
-    return bis, tau, cv
+    return bis, tau, cv, egfr, slope
 
-bis0, tau0, cv0 = gen_baseline()
+bis0, tau0, cv0, egfr0, slope0 = gen_baseline()
 
 print(f"\n(0) BASELINE (Gaussian, iid, no carryover)")
 s, m, s2, tr = run_protocol(bis0, tau0, cv0)
@@ -223,6 +234,14 @@ s, m, s2, tr = run_protocol(bis_a, tau_b, cv_c, rho=0.3, carryover=0.20, seed=78
 report("worst-case", s, m, s2, tr, tau_b)
 
 # =========================================================================
+# (G) DISEASE-PROGRESSION DRIFT (eGFR decline injected under fixed A-then-B)
+# =========================================================================
+print(f"\n(G) eGFR-DECLINE DRIFT (fixed A-then-B order, baseline cohort)")
+s, m, s2, tr = run_protocol(bis0, tau0, cv0, seed=777,
+                            egfr0=egfr0, slope=slope0, drift=True)
+report("eGFR drift", s, m, s2, tr, tau0)
+
+# =========================================================================
 # SUMMARY TABLE
 # =========================================================================
 print(f"\n{'='*86}")
@@ -230,20 +249,22 @@ print("SUMMARY: single-run sensitivity/specificity across all scenarios")
 print(f"{'='*86}")
 
 scenarios = [
-    ("(0) Baseline",         bis0, tau0, cv0, 0,   0,    777),
-    ("(A) Log-normal IS",    bis_a,tau_a,cv0, 0,   0,    778),
-    ("(B) Bimodal tau",      bis_b,tau_b,cv0, 0,   0,    780),
-    ("(C) Heteroscedastic",  bis0, tau0, cv_c,0,   0,    782),
-    ("(D) AR(1) rho=0.3",   bis0, tau0, cv0, 0.3, 0,    783),
-    ("(D') AR(1) rho=0.5",  bis0, tau0, cv0, 0.5, 0,    784),
-    ("(E) Carryover 20%",   bis0, tau0, cv0, 0,   0.20, 785),
-    ("(F) Worst-case combo", bis_a,tau_b,cv_c,0.3, 0.20, 786),
+    ("(0) Baseline",         bis0, tau0, cv0, 0,   0,    777, False),
+    ("(A) Log-normal IS",    bis_a,tau_a,cv0, 0,   0,    778, False),
+    ("(B) Bimodal tau",      bis_b,tau_b,cv0, 0,   0,    780, False),
+    ("(C) Heteroscedastic",  bis0, tau0, cv_c,0,   0,    782, False),
+    ("(D) AR(1) rho=0.3",   bis0, tau0, cv0, 0.3, 0,    783, False),
+    ("(D') AR(1) rho=0.5",  bis0, tau0, cv0, 0.5, 0,    784, False),
+    ("(E) Carryover 20%",   bis0, tau0, cv0, 0,   0.20, 785, False),
+    ("(F) Worst-case combo", bis_a,tau_b,cv_c,0.3, 0.20, 786, False),
+    ("(G) eGFR-decline drift",bis0,tau0, cv0, 0,   0,    777, True),
 ]
 
 print(f"  {'scenario':<24}{'sens':>7}{'spec':>7}{'FP':>5}{'FN':>5}{'weak':>12}{'conclusion'}")
 print(f"  {'-'*72}")
-for label, bis, tau, cv, rho, co, seed in scenarios:
-    s, m, s2, tr = run_protocol(bis, tau, cv, rho=rho, carryover=co, seed=seed)
+for label, bis, tau, cv, rho, co, seed, drift in scenarios:
+    s, m, s2, tr = run_protocol(bis, tau, cv, rho=rho, carryover=co, seed=seed,
+                                egfr0=egfr0, slope=slope0, drift=drift)
     non_r = ~tr; wk = tr & (tau < 0.20)
     tp=((s=='R')&tr).sum(); fn=((s=='N')&tr).sum()
     fp=((s=='R')&non_r).sum(); tn=((s=='N')&non_r).sum()
