@@ -31,7 +31,7 @@ LIT = [
   "N=2035, multicenter RCT. IS reduced but NO effect on hard endpoints."),
  ("Fiber/prebiotic (Rossi 2016 CJASN)",       "IS",  "20-35%", 0.28,
   "N=31 crossover, high-fiber diet. IS -25%, PCS -30%."),
- ("Resistant starch (Esgalhado 2018)",         "IS",  "20-30%", 0.25,
+ ("Resistant starch (Esgalhado 2020)",         "IS",  "20-30%", 0.25,
   "N=43, RS 16g/d x 4wk. IS -26%, urea NS."),
  ("Synbiotic (Rossi 2016 KI)",                "PCS", "12-20%", 0.16,
   "N=37, synbiotic 6wk. PCS -16%, IS NS."),
@@ -215,7 +215,7 @@ print(f"""
     ---------------------------------------------------------------
     EPPIC (2015)       IS as surrogate     population  failed
     Rossi (2016)       IS/PCS mean change  population  no individual
-    Esgalhado (2018)   IS mean change      population  no individual
+    Esgalhado (2020)   IS mean change      population  no individual
     Network meta (2025) pooled effect      population  no individual
     ** THIS WORK **    IS change           INDIVIDUAL  fills the gap""")
 

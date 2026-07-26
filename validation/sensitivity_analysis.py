@@ -30,13 +30,13 @@ print("(1) PARAMETER CALIBRATION TABLE — literature sources and uncertainty ra
 print("="*90)
 PARAMS = [
  ("IS within-person CV",        0.22, 0.18, 0.28,
-  "Niwa T, Pharmacol Ther 2010; Liabeuf S et al, Nephrol Dial Transplant 2010"),
+  "Pretorius CJ et al, Clin Chim Acta 2013"),
  ("eGFR slope (mL/min/yr)",    -2.0, -4.0, -1.0,
-  "Inker LA et al, CRIC Study, Am J Kidney Dis 2016; MDRD Study Group"),
+  "Inker LA et al, Clin J Am Soc Nephrol 2017 (CRIC); Levey AS et al, JASN 1999 (MDRD)"),
  ("Population mean tau (IS red)", 0.35, 0.20, 0.50,
   "Rossi M et al, Clin J Am Soc Nephrol 2016 (fiber); Schulman G, EPPIC, JASN 2015 (AST-120)"),
  ("Non-responder fraction",     0.15, 0.05, 0.30,
-  "Estimated from heterogeneity in Rossi 2016 and Esgalhado 2018 fiber trials"),
+  "Estimated from heterogeneity in Rossi 2016 and Esgalhado 2020 fiber trials"),
  ("74yo CKD4 annual hazard",    0.09, 0.06, 0.15,
   "UK Renal Registry 2022 Annual Report; Fried LP, Cardiovascular Health Study"),
  ("f_tox (toxin-death coupling)",0.10, 0.00, 0.40,
@@ -198,7 +198,7 @@ print(f"""
   Combined (root-sum-square)      CV ~18-25%     achievable target: 12-18%
 
   Literature evidence for standardization:
-  - Deltombe O et al, Toxins 2019: IS intra-individual CV = 18-24%
+  - Deltombe O et al, Toxins 2015: IS intra-individual CV = 18-24%
     with unstandardized sampling; 14-18% with AM fasting protocol
   - Meijers B et al, NDT 2014: duplicate sampling reduced effective CV by ~30%
   - Conclusion: CV = 0.15 is ACHIEVABLE with:

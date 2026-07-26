@@ -27,11 +27,11 @@ come from? Are they calibrated to real data?"
 - Every key parameter is anchored to published clinical data — see the calibration table
   in `sensitivity_analysis.py` section (1) and `README.md`.
 - Key references:
-  - IS CV: Niwa 2010 (*Pharmacol Ther*), Liabeuf 2010 (*NDT*)
-  - AST-120: Schulman 2015 EPPIC trials (*JASN*)
-  - Fiber effects: Rossi 2016 (*CJASN*), Esgalhado 2018 (*Eur J Nutr*)
-  - CKD progression: CRIC Study (Inker 2016), MDRD Study
-  - Mortality: UK Renal Registry 2022
+  - IS CV: Pretorius et al. 2013 (*Clin Chim Acta*)
+  - AST-120: Schulman et al. 2015 EPPIC (*JASN*)
+  - Fiber effects: Wathanavasin et al. 2025 (*Toxins*, pooled SMD −0.34), Rossi et al. 2016 SYNERGY (*CJASN*), Esgalhado et al. 2020 (*Food Funct*), Sirich et al. 2014 (*CJASN*)
+  - CKD progression: Inker et al. 2017 (*CJASN*, CRIC), Levey et al. 1999 (MDRD, *JASN*)
+  - Mortality: UK Renal Registry 2022 (code-only; mortality is not a reported parameter in the manuscript)
 - **Mitigation in code**: Tornado sensitivity analysis (`sensitivity_analysis.py` section 3)
   varies each parameter across its published uncertainty range and shows which
   conclusions change. Key finding: protocol-design conclusions are robust;
@@ -60,8 +60,8 @@ the entire clinical benefit estimate is meaningless."
 this is practical in a CKD outpatient setting?"
 
 **Response**:
-- IS within-person CV of 0.18–0.25 is documented (Deltombe 2019, *Toxins*;
-  Liabeuf 2010, *NDT*). Sources of variability:
+- IS within-person CV of 0.18–0.25 is documented (Pretorius et al. 2013, *Clin Chim Acta*;
+  Deltombe et al. 2015, *Toxins*). Sources of variability:
   - Assay: CV 5–8% (LC-MS/MS)
   - Diurnal: CV 10–12% (reducible by AM timed draw)
   - Dietary: CV 8–10% (reducible by fasting protocol)

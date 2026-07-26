@@ -69,7 +69,7 @@ STEP 1: MEASUREMENT STANDARDIZATION (achieve CV ~ 0.15)
     5. RECORD: IS value in ug/mL + date + time + fasting confirmed (Y/N)
 
   COST: 1 extra tube per visit = negligible
-  EVIDENCE: Deltombe 2019 (Toxins): standardized IS CV = 14-18%
+  EVIDENCE: Deltombe 2015 (Toxins): standardized IS CV = 14-18%
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 2: STAGE 1 — 2x3 AB CROSSOVER (weeks 0-24)
