@@ -22,7 +22,7 @@ print("="*92)
 print(f"""
   PARAMETER                 ORIGINAL   LITERATURE VALUE         SOURCE
   -------------------------------------------------------------------------
-  IS within-person CV       0.22       0.25-0.27 (healthy)     Pretorius 2013, Clin Chim Acta 419:122
+  IS within-person CV       0.22       0.25 (baseline used)    Pretorius 2013 reports 0.359 for total IS
                                        (analytical <6%,        (10 healthy, 5 weekly draws)
                                         biological ~25%)
   IS baseline, CKD3         100 (ref)  3.2±3.0 ug/mL          Lin 2011, CJASN (p-cresyl/IS by stage)
@@ -59,7 +59,7 @@ CONFIGS = {
         baseline_cv=0.20,
     ),
     "RECALIBRATED (literature-based)": dict(
-        cv=0.25,        # Pretorius 2013: biological CV 25-27%
+        cv=0.25,        # conservative baseline (Pretorius 2013 reports 35.9%)
         tau_mean=0.30,  # 2025 meta SMD -0.34 ~= 30% reduction for combined stack
         tau_sd=0.14,    # widened slightly to reflect unknown individual heterogeneity
         nr_frac=0.18,   # more conservative: higher NR given modest pooled effects
@@ -77,7 +77,7 @@ print(f"  {'parameter':<28}{'original':>10}{'recalibrated':>14}{'change':>10}{'s
 print(f"  {'-'*80}")
 params = ['cv','tau_mean','tau_sd','nr_frac','gut_sd','baseline_cv']
 labels = {
-    'cv': ('IS measurement CV', 'Pretorius 2013'),
+    'cv': ('IS measurement CV', 'modeling baseline; Pretorius 2013 = 35.9%'),
     'tau_mean': ('Population mean tau', '2025 meta-analysis'),
     'tau_sd': ('tau SD (heterogeneity)', 'conservative estimate'),
     'nr_frac': ('Non-responder fraction', 'conservative estimate'),
@@ -108,7 +108,7 @@ def make_cohort(cfg, seed):
 def run_power(nc, km, cv, egfr, slope, bis, tau, seed_offset=0):
     rng = np.random.default_rng(1000 + seed_offset)
     n_arm = nc * km
-    mde = 1.645 * cv * np.sqrt(2.0/n_arm)
+    dt = 1.645 * cv * np.sqrt(2.0/n_arm)
     obs = np.zeros((N_PAT, N_REP))
     for p in range(N_PAT):
         a_d, b_d = [], []
@@ -127,8 +127,8 @@ def run_power(nc, km, cv, egfr, slope, bis, tau, seed_offset=0):
         A = bis[p]*ad*(1+rng.normal(0, cv, (N_REP, n_arm)))
         B = bis[p]*bd*(1-tau[p])*(1+rng.normal(0, cv, (N_REP, n_arm)))
         obs[p] = np.where(A.mean(1)>0, (A.mean(1)-B.mean(1))/A.mean(1), 0)
-    det = (obs > mde).mean(1)
-    return det, mde
+    det = (obs > dt).mean(1)
+    return det, dt
 
 # =========================================================================
 # (4) HEAD-TO-HEAD COMPARISON: before vs after recalibration
@@ -155,19 +155,19 @@ for config_name, cfg in CONFIGS.items():
     non_r = tau < 0.10
 
     # (a) 2x3 at native CV
-    det_a, mde_a = run_power(2, 3, cfg['cv'], egfr, slope, bis, tau, seed_offset=1)
+    det_a, dt_a = run_power(2, 3, cfg['cv'], egfr, slope, bis, tau, seed_offset=1)
     # (b) 2x3 at CV=0.15
-    det_b, mde_b = run_power(2, 3, 0.15, egfr, slope, bis, tau, seed_offset=2)
+    det_b, dt_b = run_power(2, 3, 0.15, egfr, slope, bis, tau, seed_offset=2)
 
     results[tag] = dict(
         tau_mean=np.mean(tau), tau_sd=np.std(tau),
         nr_count=non_r.sum(), weak_count=weak.sum(),
         pw_native=det_a[true_resp].mean(),
         fp_native=det_a[non_r].mean(),
-        mde_native=mde_a,
+        dt_native=dt_a,
         pw_reduced=det_b[true_resp].mean(),
         fp_reduced=det_b[non_r].mean(),
-        mde_reduced=mde_b,
+        dt_reduced=dt_b,
         pw_weak_native=det_a[weak].mean() if weak.sum()>0 else 0,
         pw_weak_reduced=det_b[weak].mean() if weak.sum()>0 else 0,
     )
@@ -179,12 +179,12 @@ rows = [
     ("Cohort: non-responders", f"{o['nr_count']}", f"{r['nr_count']}"),
     ("Cohort: weak resp (10-20%)", f"{o['weak_count']}", f"{r['weak_count']}"),
     ("---", "---", "---"),
-    ("MDE at native CV", f"{o['mde_native']*100:.0f}%", f"{r['mde_native']*100:.0f}%"),
+    ("DT at native CV", f"{o['dt_native']*100:.0f}%", f"{r['dt_native']*100:.0f}%"),
     ("Power (native CV, all resp)", f"{o['pw_native']*100:.0f}%", f"{r['pw_native']*100:.0f}%"),
     ("Power (native CV, weak)", f"{o['pw_weak_native']*100:.0f}%", f"{r['pw_weak_native']*100:.0f}%"),
     ("FP (native CV)", f"{o['fp_native']*100:.0f}%", f"{r['fp_native']*100:.0f}%"),
     ("---", "---", "---"),
-    ("MDE at CV=0.15", f"{o['mde_reduced']*100:.0f}%", f"{r['mde_reduced']*100:.0f}%"),
+    ("DT at CV=0.15", f"{o['dt_reduced']*100:.0f}%", f"{r['dt_reduced']*100:.0f}%"),
     ("Power (CV=0.15, all resp)", f"{o['pw_reduced']*100:.0f}%", f"{r['pw_reduced']*100:.0f}%"),
     ("Power (CV=0.15, weak)", f"{o['pw_weak_reduced']*100:.0f}%", f"{r['pw_weak_reduced']*100:.0f}%"),
     ("FP (CV=0.15)", f"{o['fp_reduced']*100:.0f}%", f"{r['fp_reduced']*100:.0f}%"),
@@ -211,7 +211,7 @@ print(f"{'='*92}")
 # The key question: is CV reduction still more efficient than adding cycles?
 # Under recalibrated params: native CV is now 0.25 (worse), so the CV lever
 # should be even MORE important.
-det_4x3, mde_4x3 = run_power(4, 3, 0.25,
+det_4x3, dt_4x3 = run_power(4, 3, 0.25,
     *make_cohort(CONFIGS["RECALIBRATED (literature-based)"], seed=101)[:4],
     seed_offset=3)
 recal_egfr, recal_slope, recal_bis, recal_tau, _ = make_cohort(
@@ -226,7 +226,7 @@ print(f"""
   CONCLUSION 1: CV reduction > cycle extension
     recalibrated: 2x3 CV=0.15 power = {r['pw_reduced']*100:.0f}%
     recalibrated: 4x3 CV=0.25 power = {pw_4x3*100:.0f}%
-    MDE comparison: 2x3@0.15 = {1.645*0.15*np.sqrt(2./6)*100:.0f}%  vs  4x3@0.25 = {mde_4x3*100:.0f}%
+    DT comparison: 2x3@0.15 = {1.645*0.15*np.sqrt(2./6)*100:.0f}%  vs  4x3@0.25 = {dt_4x3*100:.0f}%
     -> {'CONFIRMED' if r['pw_reduced'] >= pw_4x3 else 'WEAKENED'}: CV reduction still dominates
 
   CONCLUSION 2: n-of-1 can detect individual IS reduction
@@ -245,7 +245,7 @@ print(f"""
 
   HONEST WEAKENING:
     - Native CV is 0.25 (not 0.22) -> baseline protocol is weaker than originally claimed
-    - Population mean tau is 0.30 (not 0.35) -> fewer patients above MDE
+    - Population mean tau is 0.30 (not 0.35) -> fewer patients above DT
     - More non-responders (18% vs 15%) -> classification becomes more important
     -> All of these make n-of-1 MORE valuable, not less (the baseline is harder,
        so the protocol's contribution is MORE meaningful)""")
@@ -257,14 +257,14 @@ print(f"\n{'='*92}")
 print("(6) THE DIFFERENTIATOR: at what effect size can n-of-1 classify individuals?")
 print(f"{'='*92}")
 print(f"\n  Using RECALIBRATED parameters, CV=0.15, 2x3 design:")
-print(f"  MDE = {1.645*0.15*np.sqrt(2./6)*100:.0f}% (minimum detectable effect)")
+print(f"  DT = {1.645*0.15*np.sqrt(2./6)*100:.0f}% (one-sided decision threshold)")
 print(f"\n  {'true tau':>10}{'detection power':>18}{'classification'}")
 print(f"  {'-'*50}")
 for tau_test in [0.05, 0.10, 0.14, 0.18, 0.22, 0.30, 0.40, 0.50]:
     # analytical power approximation
     se = 0.15 * np.sqrt(2.0/6)
-    mde = 1.645 * se
-    z = (tau_test - mde) / se
+    dt = 1.645 * se
+    z = (tau_test - dt) / se
     # Phi(z) approximation
     power = 0.5 * (1 + np.tanh(z * 0.7978845608))  # logistic approx to Phi
     power = max(0, min(1, power))

@@ -1,7 +1,7 @@
 """
 ROBUSTNESS EXPERIMENTS: test protocol under distributional violations.
 
-Addresses critical review items 1b (circularity), 2a (MDE assumptions),
+Addresses critical review items 1b (circularity), 2a (DT assumptions),
 2d (carryover), 3a (distributional assumptions). Runs the full adaptive
 protocol under scenarios that violate the baseline simulation's assumptions:
 
@@ -25,8 +25,8 @@ N_S1   = 6
 N_S2   = 3
 WK_T   = 4
 WK_W   = 2
-MDE_S1 = 1.645 * CV_STD * np.sqrt(2.0 / N_S1)
-MDE_S2 = 1.645 * CV_STD * np.sqrt(2.0 / (N_S1 + N_S2))
+DT_S1 = 1.645 * CV_STD * np.sqrt(2.0 / N_S1)
+DT_S2 = 1.645 * CV_STD * np.sqrt(2.0 / (N_S1 + N_S2))
 
 def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777,
                  egfr0=None, slope=None, drift=False):
@@ -86,7 +86,7 @@ def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777,
             ma1, mb1 = A_s1.mean(), B_s1.mean()
             obs1 = (ma1 - mb1) / ma1 if ma1 > 0 else 0
 
-            if obs1 > MDE_S1:
+            if obs1 > DT_S1:
                 rep_class[p] = 'R'
             elif obs1 < 0:
                 rep_class[p] = 'N'
@@ -98,7 +98,7 @@ def run_protocol(base_is, tau, cv_per_patient, rho=0.0, carryover=0.0, seed=777,
                 B_all = np.concatenate([B_s1, B3])
                 ma_c, mb_c = A_all.mean(), B_all.mean()
                 obs_c = (ma_c - mb_c) / ma_c if ma_c > 0 else 0
-                rep_class[p] = 'R' if obs_c > MDE_S2 else 'N'
+                rep_class[p] = 'R' if obs_c > DT_S2 else 'N'
 
         if rep == 0:
             single_class = rep_class.copy()

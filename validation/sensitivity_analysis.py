@@ -66,7 +66,7 @@ def make_cohort(egfr_mean=22, tau_mean=0.35, nr_frac=0.15, gut_sd=0.30, slope_me
 
 def run_power(nc, km, cv, egfr, sl, tau, bis):
     n_arm = nc * km
-    mde = 1.645 * cv * np.sqrt(2.0/n_arm)
+    dt = 1.645 * cv * np.sqrt(2.0/n_arm)
     obs = np.zeros((N_PAT, N_REP))
     for p in range(N_PAT):
         a_d, b_d = [], []
@@ -85,8 +85,8 @@ def run_power(nc, km, cv, egfr, sl, tau, bis):
         A = bis[p]*ad*(1+rng.normal(0,cv,(N_REP,n_arm)))
         B = bis[p]*bd*(1-tau[p])*(1+rng.normal(0,cv,(N_REP,n_arm)))
         obs[p] = np.where(A.mean(1)>0, (A.mean(1)-B.mean(1))/A.mean(1), 0)
-    det = (obs > mde).mean(1)
-    return det, mde
+    det = (obs > dt).mean(1)
+    return det, dt
 
 # =========================================================================
 # (3) TORNADO SENSITIVITY: one-at-a-time sweep on recommended 2x3 design
@@ -147,8 +147,8 @@ for name, vals in sorted(param_swings.items(), key=lambda x: -x[1][5]):
     print(f"  {name:<32}{lo_v:>8.2f}{pw_lo*100:>7.0f}%{pw_b*100:>7.0f}%{pw_hi*100:>7.0f}%{hi_v:>8.2f}{sw*100:>7.0f}pp")
 
 print(f"\n  Interpretation: parameters sorted by swing (power sensitivity).")
-print(f"  IS CV dominates: it directly determines MDE. Other parameters matter")
-print(f"  through their effect on how many patients fall above/below MDE.")
+print(f"  IS CV dominates: it directly determines DT. Other parameters matter")
+print(f"  through their effect on how many patients fall above/below DT.")
 
 # =========================================================================
 # (4) f_tox ROBUSTNESS: which conclusions survive f_tox=0?
@@ -165,7 +165,7 @@ print(f"""
   Gut stack adds ~0-2mo dialysis-free survival        YES (at f_tox=0)
   Gut stack adds ~6-9mo survival                      YES (only if f_tox>0.2)
   n-of-1 protocol can detect IS reduction             NO  (measurement theory)
-  CV reduction > cycle extension for power            NO  (MDE formula)
+  CV reduction > cycle extension for power            NO  (DT formula)
   Noise reduction is primary lever for weak resp.     NO  (mathematical)
 
   ROBUST (f_tox-independent):
@@ -211,12 +211,12 @@ print(f"""
 e0,sl0,t0,b0,resp0,wk0 = make_cohort()
 weak0 = (t0 >= 0.10) & (t0 < 0.20)
 print(f"\n  CV sweep (2x3 design, weak responder power):")
-print(f"  {'CV':>6}{'MDE':>7}{'weak pw':>9}{'achievability'}")
+print(f"  {'CV':>6}{'DT':>7}{'weak pw':>9}{'achievability'}")
 for cv, ach in [(0.25,"pessimistic"),(0.22,"standard"),(0.18,"fasting+timed"),
                 (0.15,"duplicate+fasting"),(0.12,"composite endpoint")]:
-    det,mde = run_power(2, 3, cv, e0, sl0, t0, b0)
+    det,dt = run_power(2, 3, cv, e0, sl0, t0, b0)
     pw_w = det[weak0].mean() if weak0.sum()>0 else 0
-    print(f"  {cv:>6.2f}{mde*100:>6.0f}%{pw_w*100:>8.0f}%  {ach}")
+    print(f"  {cv:>6.2f}{dt*100:>6.0f}%{pw_w*100:>8.0f}%  {ach}")
 
 # =========================================================================
 # (6) FP THRESHOLD TRADE-OFF (adjustable decision threshold)
@@ -228,7 +228,7 @@ print(f"  {'threshold':>12}{'overall pw':>12}{'weak pw':>10}{'FP':>8}{'note'}")
 print(f"  {'-'*60}")
 non_r0 = t0 < 0.10
 n_arm = 6
-mde_base = 1.645 * 0.15 * np.sqrt(2.0/n_arm)
+dt_base = 1.645 * 0.15 * np.sqrt(2.0/n_arm)
 # generate one set of observations at CV=0.15
 rng2 = np.random.default_rng(301)
 obs_all = np.zeros((N_PAT, N_REP))
@@ -238,15 +238,15 @@ for p in range(N_PAT):
     obs_all[p] = np.where(A.mean(1)>0, (A.mean(1)-B.mean(1))/A.mean(1), 0)
 
 for mult in [0.8, 0.9, 1.0, 1.1, 1.2, 1.4]:
-    mde_test = mde_base * mult
-    det_t = (obs_all > mde_test).mean(1)
+    dt_test = dt_base * mult
+    det_t = (obs_all > dt_test).mean(1)
     pw_all = det_t[resp0].mean()
     pw_w = det_t[weak0].mean() if weak0.sum()>0 else 0
     fp = det_t[non_r0].mean()
     note = "<-- standard" if mult==1.0 else ("conservative" if mult>1 else "liberal")
-    print(f"  MDE x{mult:<5.1f}{pw_all*100:>10.0f}%{pw_w*100:>9.0f}%{fp*100:>7.0f}%  {note}")
+    print(f"  DT x{mult:<5.1f}{pw_all*100:>10.0f}%{pw_w*100:>9.0f}%{fp*100:>7.0f}%  {note}")
 
-print(f"\n  -> raising threshold by 20% (MDE×1.2) cuts FP roughly in half")
+print(f"\n  -> raising threshold by 20% (DT×1.2) cuts FP roughly in half")
 print(f"     at a modest power cost (~5 pp overall)")
 
 # =========================================================================
@@ -293,7 +293,7 @@ print(f"""
 
   PARTIALLY ROBUST (sensitive to specific parameters):
     6. Weak responder power: highly sensitive to CV (dominant parameter)
-    7. FP rate: adjustable via threshold (12% -> ~6% at MDE×1.2)
+    7. FP rate: adjustable via threshold (12% -> ~6% at DT×1.2)
     8. Overall power: moderately sensitive to tau_mean and NR fraction
 
   NOT ROBUST (assumption-dependent):

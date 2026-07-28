@@ -45,15 +45,15 @@ print(f"  total:            {N_PAT}")
 print(f"  mean tau (resp):  {tau[true_resp].mean()*100:.0f}%")
 
 # =========================================================================
-# TABLE 1: MDE values
+# TABLE 1: DT values
 # =========================================================================
 print(f"\n{'='*70}")
-print("TABLE 1: MDE by design and CV")
+print("TABLE 1: DT by design and CV")
 print(f"{'='*70}")
 for design, cv, n, wk in [(("2x3",0.25,6,24)),("2x3",0.15,6,24),
                             ("3x3",0.25,9,36),("4x3",0.25,12,48),("3x3",0.15,9,36)]:
-    mde = 1.645 * cv * np.sqrt(2.0/n)
-    print(f"  {design} CV={cv}  n={n}  MDE={mde*100:.0f}%  wk={wk}")
+    dt = 1.645 * cv * np.sqrt(2.0/n)
+    print(f"  {design} CV={cv}  n={n}  DT={dt*100:.0f}%  wk={wk}")
 
 # =========================================================================
 # TABLE 2: Single-run confusion matrix (full adaptive protocol)
@@ -62,8 +62,8 @@ print(f"\n{'='*70}")
 print("TABLE 2: Single-run classification (seed=777)")
 print(f"{'='*70}")
 
-MDE_S1 = 1.645 * CV_STD * np.sqrt(2.0/N_S1)
-MDE_S2 = 1.645 * CV_STD * np.sqrt(2.0/(N_S1+N_S2))
+DT_S1 = 1.645 * CV_STD * np.sqrt(2.0/N_S1)
+DT_S2 = 1.645 * CV_STD * np.sqrt(2.0/(N_S1+N_S2))
 
 rng2 = np.random.default_rng(777)
 # consume same state as robustness baseline
@@ -88,7 +88,7 @@ for p in range(N_PAT):
     A_s1 = np.concatenate([A1, A2])
     B_s1 = np.concatenate([B1, B2])
     obs1 = (A_s1.mean()-B_s1.mean())/A_s1.mean() if A_s1.mean()>0 else 0
-    if obs1 > MDE_S1:
+    if obs1 > DT_S1:
         cls[p] = 'R'
     elif obs1 < 0:
         cls[p] = 'N'
@@ -99,7 +99,7 @@ for p in range(N_PAT):
         Ac = np.concatenate([A_s1, A3])
         Bc = np.concatenate([B_s1, B3])
         obs2 = (Ac.mean()-Bc.mean())/Ac.mean() if Ac.mean()>0 else 0
-        cls[p] = 'R' if obs2 > MDE_S2 else 'N'
+        cls[p] = 'R' if obs2 > DT_S2 else 'N'
 
 tp = ((cls=='R') & true_resp).sum()
 fn = ((cls=='N') & true_resp).sum()
@@ -130,9 +130,9 @@ print(f"{'='*70}")
 avg_wk = 24 + went_s2.mean() * 12
 avg_draws = 24 + went_s2.mean() * 12  # duplicate draws
 print(f"  Avg duration: {avg_wk:.1f} wk")
-print(f"  MDE at CV=0.15, n=6: {MDE_S1*100:.1f}%")
-print(f"  MDE at CV=0.15, n=9: {MDE_S2*100:.1f}%")
-print(f"  MDE at CV=0.25, n=6: {1.645*0.25*np.sqrt(2/6)*100:.1f}%")
+print(f"  DT at CV=0.15, n=6: {DT_S1*100:.1f}%")
+print(f"  DT at CV=0.15, n=9: {DT_S2*100:.1f}%")
+print(f"  DT at CV=0.25, n=6: {1.645*0.25*np.sqrt(2/6)*100:.1f}%")
 
 print(f"\n  FP rate (single-run): {fp/(fp+tn)*100:.1f}%")
 print(f"  Approx NR fraction: {non_r.sum()/N_PAT*100:.1f}%")

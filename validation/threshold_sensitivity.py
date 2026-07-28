@@ -21,8 +21,8 @@ tau = np.clip(rng.normal(0.30 * gut, 0.14), 0, 0.70)
 nr = rng.random(N_PAT) < 0.18
 tau[nr] = np.clip(rng.normal(0.03, 0.02, nr.sum()), 0, 0.08)
 
-MDE_S1 = 1.645 * CV_STD * np.sqrt(2.0/N_S1)
-MDE_S2 = 1.645 * CV_STD * np.sqrt(2.0/(N_S1+N_S2))
+DT_S1 = 1.645 * CV_STD * np.sqrt(2.0/N_S1)
+DT_S2 = 1.645 * CV_STD * np.sqrt(2.0/(N_S1+N_S2))
 
 # run the adaptive protocol ONCE (identical to Table 2)
 rng_run = np.random.default_rng(777)
@@ -33,13 +33,13 @@ for p in range(N_PAT):
     A2 = b*(1+rng_run.normal(0,CV_STD,N_S1//2)); B2 = b*(1-t)*(1+rng_run.normal(0,CV_STD,N_S1//2))
     As, Bs = np.concatenate([A1,A2]), np.concatenate([B1,B2])
     obs1 = (As.mean()-Bs.mean())/As.mean() if As.mean()>0 else 0
-    if obs1 > MDE_S1: cls[p]='R'
+    if obs1 > DT_S1: cls[p]='R'
     elif obs1 < 0:    cls[p]='N'
     else:
         A3 = b*(1+rng_run.normal(0,CV_STD,N_S2)); B3 = b*(1-t)*(1+rng_run.normal(0,CV_STD,N_S2))
         Ac, Bc = np.concatenate([As,A3]), np.concatenate([Bs,B3])
         obs2 = (Ac.mean()-Bc.mean())/Ac.mean() if Ac.mean()>0 else 0
-        cls[p] = 'R' if obs2 > MDE_S2 else 'N'
+        cls[p] = 'R' if obs2 > DT_S2 else 'N'
 
 print("="*72)
 print("RESPONDER-THRESHOLD SENSITIVITY (protocol fixed; truth relabeled)")
@@ -56,4 +56,4 @@ for theta in [0.05, 0.10, 0.15, 0.20]:
 
 print("\nRead: sensitivity rises and specificity falls as the responder bar is raised,")
 print("because a higher theta moves near-threshold patients from the responder to the")
-print("non-responder pool. The protocol's detection threshold (MDE=14%) is unchanged.")
+print("non-responder pool. The protocol's detection threshold (DT=14%) is unchanged.")

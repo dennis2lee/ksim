@@ -11,7 +11,7 @@ Patient: CKD stage 3b-4, sampled from plausible distributions.
 Design: AB crossover (A=base medical only, B=base + gut regimen).
   Period 4wk on-treatment, washout 2wk, K measurements in final week.
 Primary: serum indoxyl sulfate (IS) % reduction.
-Decision: observed IS drop > MDE threshold (one-sided 95%).
+Decision: observed IS drop > DT threshold (one-sided 95%).
 """
 
 import numpy as np
@@ -71,7 +71,7 @@ for lo, hi, lb in [(0,.10,"<10% (non-resp)"), (.10,.25,"10-25% (weak)"),
 # =========================================================================
 def run(nc, km, drift=True):
     """Simulate n-of-1 crossover.  nc=AB cycles, km=measures per period.
-    Returns (obs[N_PAT,N_REP], total_weeks, mde_threshold)."""
+    Returns (obs[N_PAT,N_REP], total_weeks, dt_threshold)."""
     n_arm = nc * km
     obs = np.zeros((N_PAT, N_REP))
     for p in range(N_PAT):
@@ -103,8 +103,8 @@ def run(nc, km, drift=True):
         ma, mb = A.mean(axis=1), B.mean(axis=1)
         obs[p] = np.where(ma > 0, (ma - mb) / ma, 0)
 
-    mde = 1.645 * CV * np.sqrt(2.0 / n_arm)
-    return obs, nc * WK_CYC, mde
+    dt = 1.645 * CV * np.sqrt(2.0 / n_arm)
+    return obs, nc * WK_CYC, dt
 
 # =========================================================================
 # (4) PROTOCOL COMPARISON: power × FP × duration
@@ -112,21 +112,21 @@ def run(nc, km, drift=True):
 designs = [(1,2), (1,3), (2,2), (2,3), (3,2), (3,3)]
 RES = {}
 for nc, km in designs:
-    o, wk, mde = run(nc, km)
-    det = (o > mde).mean(axis=1)
-    RES[(nc,km)] = dict(obs=o, wk=wk, mde=mde, det=det,
+    o, wk, dt = run(nc, km)
+    det = (o > dt).mean(axis=1)
+    RES[(nc,km)] = dict(obs=o, wk=wk, dt=dt, det=det,
                         pw=det[true_resp].mean(), fp=det[~true_resp].mean())
 
 print(f"\n{'='*82}")
 print("(4) PROTOCOL COMPARISON  (power=TP among true responders, FP among non-resp)")
 print(f"{'='*82}")
-print(f"  {'design':<15}{'power':>8}{'FP':>8}{'MDE':>8}{'weeks':>8}{'~months':>9}")
+print(f"  {'design':<15}{'power':>8}{'FP':>8}{'DT':>8}{'weeks':>8}{'~months':>9}")
 print(f"  {'-'*56}")
 for nc, km in designs:
     r = RES[(nc,km)]
     tag = " <--" if (nc,km) == (2,3) else ""
     print(f"  {nc}cyc x {km}meas{r['pw']*100:>7.0f}%{r['fp']*100:>7.0f}%"
-          f"{r['mde']*100:>7.0f}%{r['wk']:>7}{r['wk']/4.3:>8.0f}{tag}")
+          f"{r['dt']*100:>7.0f}%{r['wk']:>7}{r['wk']/4.3:>8.0f}{tag}")
 
 D = RES[(2,2)]   # default for downstream analysis
 
@@ -134,7 +134,7 @@ D = RES[(2,2)]   # default for downstream analysis
 # (5) POWER BY TRUE EFFECT SIZE (2cyc x 2meas)
 # =========================================================================
 print(f"\n{'='*82}")
-print(f"(5) DETECTION POWER BY TRUE EFFECT SIZE (2x2, MDE={D['mde']*100:.0f}%)")
+print(f"(5) DETECTION POWER BY TRUE EFFECT SIZE (2x2, DT={D['dt']*100:.0f}%)")
 print(f"{'='*82}")
 for lo, hi in [(0,.10), (.10,.20), (.20,.30), (.30,.40), (.40,.70)]:
     m = (tau >= lo) & (tau < hi); n = m.sum()
@@ -161,8 +161,8 @@ for p in range(N_PAT):
         wk = wk_b + WK_W
     drift_bias[p] = (1 - tau[p]) * (1 - np.mean(b_d)/np.mean(a_d))
 
-o_nd, _, mde_nd = run(2, 2, drift=False)
-det_nd = (o_nd > mde_nd).mean(axis=1)
+o_nd, _, dt_nd = run(2, 2, drift=False)
+det_nd = (o_nd > dt_nd).mean(axis=1)
 pw_drift = D['det'][true_resp].mean()
 pw_nodr  = det_nd[true_resp].mean()
 
@@ -249,7 +249,7 @@ for lb, i in idxs:
     print(f"    true tau       = {tau[i]*100:.0f}%")
     print(f"    observed (500x): median={med*100:.0f}%  90%CI=[{q5*100:.0f}-{q95*100:.0f}%]")
     print(f"    single run:      raw={obs1[i]*100:.0f}%  shrunk={shrunk[i]*100:.0f}%")
-    print(f"    detection power  = {D['det'][i]*100:.0f}%  (MDE={D['mde']*100:.0f}%)")
+    print(f"    detection power  = {D['det'][i]*100:.0f}%  (DT={D['dt']*100:.0f}%)")
 
 # =========================================================================
 # (9) COHORT-LEVEL CLASSIFICATION MATRIX (2x2 and 2x3 designs)
@@ -266,7 +266,7 @@ for tag, key in [("2x2 (24 wk)", (2,2)), ("2x3 (24 wk)", (2,3))]:
     tn = n_nr - fp
     ppv = tp/(tp+fp) if (tp+fp) > 0 else 0
     npv = tn/(tn+fn) if (tn+fn) > 0 else 0
-    print(f"\n  {tag}  (measures/arm={key[0]*key[1]}, MDE={r['mde']*100:.0f}%)")
+    print(f"\n  {tag}  (measures/arm={key[0]*key[1]}, DT={r['dt']*100:.0f}%)")
     print(f"    true responders: {n_tr}   non-responders: {n_nr}")
     print(f"    TP={tp:>3}  FN={fn:>3}  |  FP={fp:>3}  TN={tn:>3}")
     print(f"    sensitivity={tp/n_tr*100:.0f}%  specificity={tn/n_nr*100:.0f}%"
@@ -283,7 +283,7 @@ print(f"(10) PROTOCOL RECOMMENDATION")
 print(f"{'='*82}")
 print(f"""
   RECOMMENDED DESIGN: 2 cycles x 3 measures/period (24 weeks, ~6 months)
-    power = {r23['pw']*100:.0f}%  |  FP = {r23['fp']*100:.0f}%  |  MDE = {r23['mde']*100:.0f}%
+    power = {r23['pw']*100:.0f}%  |  FP = {r23['fp']*100:.0f}%  |  DT = {r23['dt']*100:.0f}%
 
   PROTOCOL TIMELINE (A-B-A-B crossover):
     wk  0- 4 : A1 (control)        serum IS x3 at wk 3-4
@@ -296,13 +296,13 @@ print(f"""
     wk 22-24 : final washout + analysis
 
   DECISION RULE:
-    IS drop > {r23['mde']*100:.0f}% -> RESPONDER  (continue regimen)
-    IS drop < {r23['mde']*100:.0f}% -> NON-RESP   (deprescribe, eliminate burden)
+    IS drop > {r23['dt']*100:.0f}% -> RESPONDER  (continue regimen)
+    IS drop < {r23['dt']*100:.0f}% -> NON-RESP   (deprescribe, eliminate burden)
 
   STEPWISE ADDITION (optional, extends to ~12 months):
     first  2 cycles: fiber sachet alone
     next   2 cycles: add probiotic (Lacto, bedtime dosing)
-    -> each component independently evaluated via its own MDE test
+    -> each component independently evaluated via its own DT test
 
   eGFR COST: ~{egfr_drop:.1f} mL/min lost during 24-wk protocol (crossover-controlled)
   BLOOD DRAWS: 12 total (3 per period x 4 periods)

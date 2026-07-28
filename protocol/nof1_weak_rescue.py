@@ -72,8 +72,8 @@ def run(nc, km, cv=CV0):
         obs[p] = np.where(A.mean(1)>0, (A.mean(1)-B.mean(1))/A.mean(1), 0)
     return obs, nc*WK_CYC, 1.645*cv*np.sqrt(2./n_arm)
 
-def stats(obs, mde):
-    det = (obs > mde).mean(1)
+def stats(obs, dt):
+    det = (obs > dt).mean(1)
     return dict(det=det,
                 pw_w=det[weak].mean(), pw_m=det[mod_bord].mean(),
                 pw_s=det[strong].mean(), pw_all=det[true_resp].mean(),
@@ -86,23 +86,23 @@ designs = [(2,3),(3,3),(3,4),(4,3),(4,4),(5,3)]
 print(f"\n{'='*88}")
 print("(3) STRATEGY A — EXTENDED FIXED DESIGNS  (baseline = 2x3)")
 print(f"{'='*88}")
-print(f"  {'design':<10}{'MDE':>6}{'wk':>5}{'draws':>7}"
+print(f"  {'design':<10}{'DT':>6}{'wk':>5}{'draws':>7}"
       f"{'WEAK':>8}{'20-30%':>8}{'30%+':>8}{'all':>8}{'FP':>6}")
 print(f"  {'-'*65}")
 fixed = {}
 for nc,km in designs:
-    o,wk,mde = run(nc,km)
-    s = stats(o,mde)
-    s.update(wk=wk, mde=mde, draws=2*nc*km)
+    o,wk,dt = run(nc,km)
+    s = stats(o,dt)
+    s.update(wk=wk, dt=dt, draws=2*nc*km)
     fixed[(nc,km)] = s
     tag = " *" if (nc,km)==(2,3) else ""
-    print(f"  {nc}x{km}{tag:<5}{mde*100:>5.0f}%{wk:>5}{s['draws']:>7}"
+    print(f"  {nc}x{km}{tag:<5}{dt*100:>5.0f}%{wk:>5}{s['draws']:>7}"
           f"{s['pw_w']*100:>7.0f}%{s['pw_m']*100:>7.0f}%{s['pw_s']*100:>7.0f}%"
           f"{s['pw_all']*100:>7.0f}%{s['fp']*100:>5.0f}%")
 
-# MDE vs cycles insight
-print(f"\n  MDE scaling: MDE = 1.645 * CV * sqrt(2/n)")
-print(f"  to HALVE MDE: need 4x measurements (e.g. 2x3->8x3 = 96wk)")
+# DT vs cycles insight
+print(f"\n  DT scaling: DT = 1.645 * CV * sqrt(2/n)")
+print(f"  to HALVE DT: need 4x measurements (e.g. 2x3->8x3 = 96wk)")
 print(f"  -> adding cycles is quadratically inefficient for weak responders")
 
 # =========================================================================
@@ -113,7 +113,7 @@ def adaptive(s1_nc, s2_nc, km, cv=CV0, thresh_lo=0.0):
     n1 = s1_nc * km
     n_full = (s1_nc + s2_nc) * km
     mde1 = 1.645 * cv * np.sqrt(2.0 / n1)
-    mde_full = 1.645 * cv * np.sqrt(2.0 / n_full)
+    dt_full = 1.645 * cv * np.sqrt(2.0 / n_full)
     wk1 = s1_nc * WK_CYC
     wk_full = (s1_nc + s2_nc) * WK_CYC
 
@@ -151,7 +151,7 @@ def adaptive(s1_nc, s2_nc, km, cv=CV0, thresh_lo=0.0):
 
         detected[p, clear_resp] = True
         detected[p, clear_nonr] = False
-        detected[p, borderline] = obs_f[borderline] > mde_full
+        detected[p, borderline] = obs_f[borderline] > dt_full
         went_s2[p] = borderline
 
     power = detected.mean(1)
@@ -159,7 +159,7 @@ def adaptive(s1_nc, s2_nc, km, cv=CV0, thresh_lo=0.0):
     avg_wk = np.where(went_s2, wk_full, wk1).astype(float).mean(1)
     avg_draws = np.where(went_s2, 2*n_full, 2*n1).astype(float).mean(1)
     return dict(power=power, s2_frac=s2_frac, avg_wk=avg_wk, avg_draws=avg_draws,
-                mde1=mde1, mde_full=mde_full, wk1=wk1, wk_full=wk_full,
+                mde1=mde1, dt_full=dt_full, wk1=wk1, wk_full=wk_full,
                 fp=power[non_r].mean(), pw_w=power[weak].mean(),
                 pw_m=power[mod_bord].mean(), pw_all=power[true_resp].mean())
 
@@ -206,22 +206,22 @@ cv_how = {0.22:"standard serum IS draw",
 print(f"\n{'='*88}")
 print("(5) STRATEGY C — NOISE REDUCTION (CV sweep, fixed 2x3 = 24 wk)")
 print(f"{'='*88}")
-print(f"  {'CV':>5}{'MDE':>6}{'WEAK':>8}{'20-30':>8}{'all':>8}{'FP':>6}"
+print(f"  {'CV':>5}{'DT':>6}{'WEAK':>8}{'20-30':>8}{'all':>8}{'FP':>6}"
       f"  {'equiv n@.22':>12}  {'method'}")
 print(f"  {'-'*82}")
 cv_res = {}
 for cv in cvs:
-    o,_,mde = run(2,3,cv=cv)
-    s = stats(o,mde)
+    o,_,dt = run(2,3,cv=cv)
+    s = stats(o,dt)
     cv_res[cv] = s
-    cv_res[cv]['mde'] = mde
-    n_equiv = 2.0/(mde/(1.645*0.22))**2
-    print(f"  {cv:>5.2f}{mde*100:>5.0f}%{s['pw_w']*100:>7.0f}%{s['pw_m']*100:>7.0f}%"
+    cv_res[cv]['dt'] = dt
+    n_equiv = 2.0/(dt/(1.645*0.22))**2
+    print(f"  {cv:>5.2f}{dt*100:>5.0f}%{s['pw_w']*100:>7.0f}%{s['pw_m']*100:>7.0f}%"
           f"{s['pw_all']*100:>7.0f}%{s['fp']*100:>5.0f}%{n_equiv:>11.0f}"
           f"  {cv_how[cv]}")
 
-print(f"\n  KEY INSIGHT: CV 0.22->0.15 at 2x3 gives MDE 21%->14%")
-print(f"    same MDE at CV=0.22 would require ~{2.0/((1.645*0.15*np.sqrt(2./6))/(1.645*0.22))**2:.0f} measures/arm"
+print(f"\n  KEY INSIGHT: CV 0.22->0.15 at 2x3 gives DT 21%->14%")
+print(f"    same DT at CV=0.22 would require ~{2.0/((1.645*0.15*np.sqrt(2./6))/(1.645*0.22))**2:.0f} measures/arm"
       f" (= {2.0/((1.645*0.15*np.sqrt(2./6))/(1.645*0.22))**2/3:.0f} cycles x 3meas = "
       f"{int(2.0/((1.645*0.15*np.sqrt(2./6))/(1.645*0.22))**2/3)*12} wk)")
 print(f"    -> reducing CV saves ~{int(2.0/((1.645*0.15*np.sqrt(2./6))/(1.645*0.22))**2/3)*12 - 24} WEEKS"
@@ -246,8 +246,8 @@ print(f"  {'-'*70}")
 combo_res = {}
 for label, cv, acfg in combos:
     if acfg is None:
-        o,wk,mde = run(2,3,cv=cv)
-        s = stats(o,mde)
+        o,wk,dt = run(2,3,cv=cv)
+        s = stats(o,dt)
         combo_res[label] = dict(pw_w=s['pw_w'],pw_m=s['pw_m'],pw_all=s['pw_all'],
                                 fp=s['fp'],avg_wk=24,draws=12)
         print(f"  {label:<26}{s['pw_w']*100:>7.0f}%{s['pw_m']*100:>7.0f}%"
@@ -339,7 +339,7 @@ print(f"""
      how: same-day duplicate serum IS draws, fasting, timed AM collection
      cost: +12 extra blood draws (24 vs 12), same 24-week duration
      weak power: {best_cv['pw_w']*100:.0f}% (from {fixed[(2,3)]['pw_w']*100:.0f}%)
-     reason: MDE drops below the weak-responder tau range (21% -> 14%)
+     reason: DT drops below the weak-responder tau range (21% -> 14%)
              this is IMPOSSIBLE to achieve by adding cycles at CV=0.22
              within any practical timeline for a 74-year-old
 
@@ -354,7 +354,7 @@ print(f"""
   3. EXTENDED FIXED DESIGNS                                 <- AVOID
      4x3 fixed (48 wk) needed to match CV=0.15's weak power in 24 wk
      -> 74yo loses ~1.8 mL/min eGFR over 48 weeks (double the cost)
-     -> adding cycles is quadratically inefficient: 4x measures = 2x MDE reduction
+     -> adding cycles is quadratically inefficient: 4x measures = 2x DT reduction
 
   DO NOT PURSUE:
   - 5+ cycle designs (60+ wk = 14+ months for a 74yo with declining eGFR)
@@ -378,7 +378,7 @@ print(f"""
       -> borderline (0-14%): proceed to stage 2
     stage 2 (wk 24-36): 1 additional AB cycle for borderline only
       -> 3 more visits per arm (6 visits, 12 draws)
-      -> final decision with 9 measures/arm, MDE ~ {1.645*0.15*np.sqrt(2./9)*100:.0f}%
+      -> final decision with 9 measures/arm, DT ~ {1.645*0.15*np.sqrt(2./9)*100:.0f}%
 
   EXPECTED OUTCOME (100-patient cohort):
     ~70% classified at stage 1 (24 wk) — no extra burden

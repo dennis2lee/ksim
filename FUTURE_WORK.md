@@ -18,7 +18,7 @@ Collect duplicate fasting AM serum IS draws at 3 visits over 2 weeks (no interve
 Compute within-person CV under standardized versus unstandardized conditions.
 
 **Why first**: The entire protocol's efficiency rests on achievable CV. If CV=0.15 is
-not reachable, the MDE stays at 24% and the design reverts to a 4-cycle requirement.
+not reachable, the DT stays at 24% and the design reverts to a 4-cycle requirement.
 Conversely, if CV turns out to be 0.12, the protocol becomes even more powerful.
 
 **What's needed**: IRB approval, LC-MS/MS IS assay access (or partnership with a reference
@@ -59,7 +59,7 @@ trial and apply the classification algorithm retrospectively. Confirm that the
 simulated operating characteristics match what we see in real data.
 
 **Design**: Contact authors of Sirich 2014, Rossi SYNERGY 2016, or Esgalhado 2020
-for IPD. Apply our MDE threshold to each patient's observed IS change.
+for IPD. Apply our decision threshold to each patient's observed IS change.
 Compare the classification rate with our simulation predictions.
 
 **What's needed**: Data-sharing agreement with original investigators, or access to
@@ -86,9 +86,10 @@ are IS non-responders but PCS responders.
 Define responder as significant reduction in any one toxin. Compute the gain in
 sensitivity from a composite versus IS-only.
 
-**What's needed**: Published PCS biological CV (Pretorius 2013 reported PCS CV
-of ~25%, similar to IS), and correlation structure between IS and PCS within
-patients.
+**What's needed**: Pretorius 2013 reports a within-person biological CV of 50.5%
+for total pCS, higher than the 35.9% for total IS, so a composite endpoint would
+carry the noisier marker. Also needed: the correlation structure between IS and
+PCS within patients.
 
 **Difficulty**: Low (simulation extension, same framework).
 
@@ -157,7 +158,7 @@ different baseline IS levels, eGFR trajectories, and microbiome compositions.
 
 **Design**: Generate population-specific virtual cohorts from published data
 for each subgroup. Re-run the full protocol simulation. Identify populations
-where the protocol needs modification (e.g., different MDE thresholds,
+where the protocol needs modification (e.g., different decision thresholds,
 longer washouts).
 
 **What's needed**: Published IS data stratified by CKD etiology and demographics.

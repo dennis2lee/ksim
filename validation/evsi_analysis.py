@@ -1,7 +1,7 @@
 """
 EXPECTED VALUE OF SAMPLE INFORMATION (EVSI) ANALYSIS.
 
-Goes beyond the MDE formula to answer the decision-theoretic question:
+Goes beyond the DT formula to answer the decision-theoretic question:
 "What is the value of reducing CV by one unit, measured in correct
 classifications per protocol?"
 
@@ -59,14 +59,14 @@ def run_at_cv(cv, seed=800):
     ncc = tp + tn
     sens = tp / (tp + fn) if (tp + fn) > 0 else 0
     spec = tn / (tn + fp) if (tn + fp) > 0 else 0
-    return dict(cv=cv, mde=mde1, sens=sens, spec=spec, ncc=ncc,
+    return dict(cv=cv, dt=mde1, sens=sens, spec=spec, ncc=ncc,
                 tp=tp, tn=tn, fp=fp, fn=fn)
 
 print("="*82)
 print("EVSI ANALYSIS: marginal value of CV reduction")
 print("(sens/spec/NCC = mean over 50 independent single-run replications, seeds 700-749)")
 print("="*82)
-print(f"  {'CV':>6}{'MDE':>7}{'sens':>8}{'spec':>8}{'NCC':>6}{'dNCC/dCV':>10}{'draws':>7}{'note'}")
+print(f"  {'CV':>6}{'DT':>7}{'sens':>8}{'spec':>8}{'NCC':>6}{'dNCC/dCV':>10}{'draws':>7}{'note'}")
 print(f"  {'-'*62}")
 
 cvs = [0.30, 0.28, 0.25, 0.22, 0.20, 0.18, 0.15, 0.13, 0.12, 0.10]
@@ -76,7 +76,7 @@ for cv in cvs:
     runs = [run_at_cv(cv, seed=s) for s in SEEDS]
     agg = dict(
         cv=cv,
-        mde=runs[0]['mde'],
+        dt=runs[0]['dt'],
         sens=np.mean([x['sens'] for x in runs]),
         spec=np.mean([x['spec'] for x in runs]),
         ncc=np.mean([x['ncc'] for x in runs]),
@@ -95,7 +95,7 @@ for i, r in enumerate(results):
     if r['cv'] == 0.25: note = "<- native CV"
     elif r['cv'] == 0.15: note = "<- target CV"
     elif r['cv'] == 0.10: note = "<- diminishing returns"
-    print(f"  {r['cv']:>6.2f}{r['mde']*100:>6.0f}%{r['sens']*100:>7.0f}%{r['spec']*100:>7.0f}%"
+    print(f"  {r['cv']:>6.2f}{r['dt']*100:>6.0f}%{r['sens']*100:>7.0f}%{r['spec']*100:>7.0f}%"
           f"{r['ncc']:>6.0f}{marginal:>9.1f}{draws:>7}  {note}")
 
 print(f"""
@@ -104,12 +104,12 @@ print(f"""
   the investment in noise reduction yields the most classifications.
 
   The steepest gains are in the CV 0.25 -> 0.15 range. Below CV ~ 0.12,
-  gains flatten because most patients are already above MDE.
+  gains flatten because most patients are already above DT.
 
   This is NOT the standard-error formula restated. It is the decision-
   theoretic translation: each unit of CV reduction has a CLASSIFICATION
   VALUE that depends on the population's effect-size distribution.
-  That distribution determines where on the MDE curve the patient mass
+  That distribution determines where on the DT curve the patient mass
   sits, and therefore how many additional correct decisions each CV
   point buys. This value cannot be derived from the formula alone —
   it requires the simulation.

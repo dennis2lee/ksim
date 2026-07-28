@@ -14,7 +14,7 @@ Gut-targeted interventions (dietary fiber, probiotics, oral sorbents) reduce
 indoxyl sulfate in CKD — a 2025 meta-analysis of 11 RCTs confirms a pooled
 effect (SMD −0.34). But these trials report only population averages. A
 clinician cannot tell whether a specific patient responds or not. The
-within-person biological variability of IS (CV 25–27%) makes single pre-post
+within-person biological variability of IS (CV 35.9%, Pretorius 2013) makes single pre-post
 comparisons unreliable.
 
 ## What This Code Does
@@ -24,7 +24,7 @@ comparisons unreliable.
 2. **Simulates an n-of-1 crossover protocol** (2-cycle AB design with adaptive
    second stage for borderline patients)
 3. **Quantifies the classification-efficiency frontier**: the relationship between
-   measurement noise (CV), detection threshold (MDE), and the number of patients
+   measurement noise (CV), the one-sided decision threshold (DT), and the number of patients
    correctly classified as responders or non-responders
 4. **Tests robustness** under 8 distributional violations (log-normal IS, bimodal
    treatment effects, correlated noise, partial carryover, combined worst case)
@@ -113,7 +113,7 @@ done
 
 | Parameter | Value | Literature source |
 |-----------|-------|-------------------|
-| IS biological CV | 0.25 (range 0.18–0.28) | Pretorius et al. 2013, *Clin Chim Acta* |
+| IS biological CV | 0.25 (conservative modeling baseline) | Pretorius et al. 2013, *Clin Chim Acta*, reports 35.9% for total serum IS in healthy volunteers. We simulate from 0.25, which understates rather than inflates the gain from standardization. |
 | IS baseline CKD4 | 5.4 ± 3.6 µg/mL | Lin et al. 2011 |
 | Fiber IS reduction (pooled) | SMD −0.34 | Wathanavasin et al. 2025, *Toxins*, 11 RCTs, N=398 |
 | CKD4 eGFR slope | −2.0 mL/min/1.73 m²/yr | CRIC Study / MDRD |

@@ -94,18 +94,18 @@ print(f"    n-of-1 would: correctly CLASSIFY each patient -> deprescribe non-res
 
 # n-of-1 classification for same patients (2x3 CV=0.15 recommended protocol)
 n_arm = 6; cv_opt = 0.15
-mde = 1.645 * cv_opt * np.sqrt(2.0 / n_arm)
+dt = 1.645 * cv_opt * np.sqrt(2.0 / n_arm)
 true_resp = tau >= 0.10
 det_power = np.zeros(N_PAT)
 for p in range(N_PAT):
     A = baseline[p] * (1 + rng.normal(0, cv_opt, (N_REP, n_arm)))
     B = baseline[p] * (1 - tau[p]) * (1 + rng.normal(0, cv_opt, (N_REP, n_arm)))
     obs = np.where(A.mean(1)>0, (A.mean(1)-B.mean(1))/A.mean(1), 0)
-    det_power[p] = (obs > mde).mean()
+    det_power[p] = (obs > dt).mean()
 
 tp = (det_power[true_resp] > 0.5).sum()
 tn = (det_power[~true_resp] <= 0.5).sum()
-print(f"\n  n-of-1 CLASSIFICATION (2x3, CV=0.15, MDE={mde*100:.0f}%):")
+print(f"\n  n-of-1 CLASSIFICATION (2x3, CV=0.15, DT={dt*100:.0f}%):")
 print(f"    responders correctly identified: {tp}/{true_resp.sum()} ({tp/true_resp.sum()*100:.0f}%)")
 print(f"    non-resp correctly deprescribed: {tn}/{(~true_resp).sum()} ({tn/(~true_resp).sum()*100:.0f}%)")
 
@@ -157,14 +157,14 @@ print(f"""
 
   NONE address measurement noise reduction as a design lever.
 
-  OUR CONTRIBUTION: MDE = 1.645 * CV * sqrt(2/n)
+  OUR CONTRIBUTION: DT = 1.645 * CV * sqrt(2/n)
     - CV enters LINEARLY; n enters as 1/sqrt(n)
-    - Halving CV halves MDE (same effort)
-    - Halving MDE by adding measurements requires 4x the measurements
+    - Halving CV halves DT (same effort)
+    - Halving DT by adding measurements requires 4x the measurements
     - This makes CV reduction QUADRATICALLY more efficient than adding cycles""")
 
 print(f"\n  Quantitative demonstration:")
-print(f"  {'approach':<36}{'MDE':>8}{'weeks':>8}{'draws':>8}{'efficiency':>12}")
+print(f"  {'approach':<36}{'DT':>8}{'weeks':>8}{'draws':>8}{'efficiency':>12}")
 print(f"  {'-'*72}")
 ref_mde = 1.645 * 0.22 * np.sqrt(2./6)
 approaches = [
@@ -176,11 +176,11 @@ approaches = [
     ("Both: 3x3, CV=0.15",        0.15, 9, 36, 36),
 ]
 for label, cv, n, wk, dr in approaches:
-    mde_v = 1.645 * cv * np.sqrt(2./n)
-    red = (1 - mde_v/ref_mde) * 100
-    print(f"  {label:<36}{mde_v*100:>7.0f}%{wk:>8}{dr:>8}{red:>10.0f}% MDE cut")
+    dt_v = 1.645 * cv * np.sqrt(2./n)
+    red = (1 - dt_v/ref_mde) * 100
+    print(f"  {label:<36}{dt_v*100:>7.0f}%{wk:>8}{dr:>8}{red:>10.0f}% DT cut")
 
-print(f"\n  -> CV 0.22->0.15 at 2x3 (24 wk) achieves BETTER MDE than 4x3 (48 wk) at CV=0.22")
+print(f"\n  -> CV 0.22->0.15 at 2x3 (24 wk) achieves BETTER DT than 4x3 (48 wk) at CV=0.22")
 print(f"     this saves 24 WEEKS — the dominant efficiency lever for protocol design")
 
 # =========================================================================
@@ -231,7 +231,7 @@ gaps = [
   "n-of-1 crossover with per-patient power analysis (N=100 virtual cohort)"),
  ("Measurement noise as design lever",
   "n-of-1 methodology focuses on cycles/washout, not CV optimization",
-  "MDE formula analysis showing CV reduction is quadratically more efficient"),
+  "DT formula analysis showing CV reduction is quadratically more efficient"),
  ("IS as primary (non-surrogate) endpoint",
   "EPPIC used IS as surrogate for hard outcomes -> failed",
   "IS reduction reframed as personal response detection, not outcome prediction"),
@@ -242,7 +242,7 @@ gaps = [
   "No strategy for detecting modest (10-20%) IS reductions",
   "CV reduction + adaptive enrichment -> 69% power for weak responders"),
  ("Published biological CV quantification",
-  "IS biological CV (25-27%) documented but not used for protocol design",
+  "IS biological CV (35.9%, Pretorius 2013) documented but not used for protocol design",
   "First use of published CV data to optimize n-of-1 protocol parameters"),
 ]
 print(f"  {'gap':<38}{'prior work limit':<48}{'our contribution'}")

@@ -17,9 +17,11 @@ import numpy as np
 # PROTOCOL CONSTANTS (literature-calibrated)
 # =========================================================================
 CV_TARGET  = 0.15    # achievable via AM fasting + duplicate draws
-CV_NATIVE  = 0.25    # unstandardized biological CV (Pretorius 2013)
-MDE_6      = 1.645 * CV_TARGET * np.sqrt(2.0/6)   # 2x3 design: 14%
-MDE_9      = 1.645 * CV_TARGET * np.sqrt(2.0/9)   # 3x3 design: 12%
+CV_NATIVE  = 0.25    # conservative modeling baseline. Pretorius 2013 reports
+                     # within-person biological CV 35.9% for TOTAL serum IS; we
+                     # start lower so the gain from standardization is understated.
+DT_6      = 1.645 * CV_TARGET * np.sqrt(2.0/6)   # 2x3 design: 14%
+DT_9      = 1.645 * CV_TARGET * np.sqrt(2.0/9)   # 3x3 design: 12%
 WASHOUT_WK = 2       # literature: 2-4wk washout used in fiber/probiotic crossovers
 TREAT_WK   = 4       # 4 weeks on-treatment before steady-state measurement
 MEAS_PER_PERIOD = 3  # 3 measurement visits in final week of each period
@@ -53,9 +55,9 @@ STEP 0: PATIENT ELIGIBILITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 1: MEASUREMENT STANDARDIZATION (achieve CV ~ 0.15)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  WHY: biological IS CV = 25-27% (Pretorius 2013). Unstandardized measurement
-  has MDE = 24% — too high to detect moderate responders. Standardization
-  targets CV ~ 0.15, giving MDE = {MDE_6*100:.0f}%.
+  WHY: biological IS CV = 35.9% (Pretorius 2013). Unstandardized measurement
+  has DT = 24% — too high to detect moderate responders. Standardization
+  targets CV ~ 0.15, giving DT = {DT_6*100:.0f}%.
 
   HOW (at each measurement visit):
     1. FASTING: overnight fast (>=8h), no tryptophan-rich foods prior day
@@ -111,9 +113,9 @@ STEP 3: STAGE 1 ANALYSIS — compute individual IS reduction
     observed_reduction = (mean_A - mean_B) / mean_A
 
   DECISION THRESHOLDS:
-    MDE = {MDE_6*100:.0f}% (one-sided 95%, at CV=0.15, 6 measures/arm)
+    DT = {DT_6*100:.0f}% (one-sided 95%, at CV=0.15, 6 measures/arm)
 
-    if observed_reduction > {MDE_6*100:.0f}%  -> RESPONDER
+    if observed_reduction > {DT_6*100:.0f}%  -> RESPONDER
        action: continue gut-clearance regimen indefinitely
        confidence: >95% that the true effect is real (not noise)
 
@@ -121,7 +123,7 @@ STEP 3: STAGE 1 ANALYSIS — compute individual IS reduction
        action: stop gut-clearance regimen, eliminate burden
        confidence: high (IS went up or stayed same on intervention)
 
-    if 0% <= observed_reduction <= {MDE_6*100:.0f}% -> BORDERLINE
+    if 0% <= observed_reduction <= {DT_6*100:.0f}% -> BORDERLINE
        action: proceed to STAGE 2 (1 extra cycle)
        rationale: effect may be real but too small to confirm with 6 measures
 
@@ -142,9 +144,9 @@ STEP 4: STAGE 2 — ADAPTIVE ENRICHMENT (weeks 24-36, borderline only)
     mean_B = average of 9 intervention IS values
     observed_reduction = (mean_A - mean_B) / mean_A
 
-    MDE_stage2 = {MDE_9*100:.0f}% (one-sided 95%, 9 measures/arm)
+    MDE_stage2 = {DT_9*100:.0f}% (one-sided 95%, 9 measures/arm)
 
-    if observed_reduction > {MDE_9*100:.0f}% -> RESPONDER (continue)
+    if observed_reduction > {DT_9*100:.0f}% -> RESPONDER (continue)
     else                                     -> NON-RESPONDER (stop)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -203,9 +205,9 @@ def classify_patient(
         return dict(classification="ERROR", reason="control mean IS <= 0")
 
     obs_reduction = (mean_a - mean_b) / mean_a
-    mde = 1.645 * cv * np.sqrt(1.0/n_a + 1.0/n_b)
+    dt = 1.645 * cv * np.sqrt(1.0/n_a + 1.0/n_b)
 
-    if obs_reduction > mde:
+    if obs_reduction > dt:
         classification = "RESPONDER"
         action = "Continue gut-clearance regimen"
         confidence = ">=95% true positive"
@@ -217,18 +219,18 @@ def classify_patient(
         if stage == 1:
             classification = "BORDERLINE"
             action = "Proceed to Stage 2 (1 additional AB cycle, wk 24-36)"
-            confidence = f"observed {obs_reduction*100:.0f}% < MDE {mde*100:.0f}%"
+            confidence = f"observed {obs_reduction*100:.0f}% < DT {dt*100:.0f}%"
         else:
             classification = "NON-RESPONDER"
             action = "Stop gut-clearance; effect too small to confirm"
-            confidence = f"stage 2 combined: {obs_reduction*100:.0f}% < MDE {mde*100:.0f}%"
+            confidence = f"stage 2 combined: {obs_reduction*100:.0f}% < DT {dt*100:.0f}%"
 
     return dict(
         classification=classification,
         observed_reduction=obs_reduction,
         mean_control=mean_a,
         mean_intervention=mean_b,
-        mde=mde,
+        dt=dt,
         n_control=n_a,
         n_intervention=n_b,
         action=action,
@@ -241,7 +243,7 @@ def print_result(r, label=""):
     print(f"\n  Patient{tag}:")
     print(f"    control IS:    {r['mean_control']:.1f} ug/mL (n={r['n_control']})")
     print(f"    interv. IS:    {r['mean_intervention']:.1f} ug/mL (n={r['n_intervention']})")
-    print(f"    observed red:  {r['observed_reduction']*100:.1f}%  (MDE = {r['mde']*100:.0f}%)")
+    print(f"    observed red:  {r['observed_reduction']*100:.1f}%  (DT = {r['dt']*100:.0f}%)")
     print(f"    --->  {r['classification']}  (stage {r['stage']})")
     print(f"    action: {r['action']}")
     print(f"    confidence: {r['confidence']}")
@@ -259,18 +261,18 @@ print(f"""
   [STAGE 1: 2x3 crossover, 24 wk]
   [Compute: obs_red = (mean_A - mean_B) / mean_A]
         |
-        +---> obs_red > {MDE_6*100:.0f}%  ---> RESPONDER  ---> continue regimen
+        +---> obs_red > {DT_6*100:.0f}%  ---> RESPONDER  ---> continue regimen
         |
         +---> obs_red < 0%     ---> NON-RESP  ---> stop, deprescribe
         |
-        +---> 0% <= obs_red <= {MDE_6*100:.0f}%  ---> BORDERLINE
+        +---> 0% <= obs_red <= {DT_6*100:.0f}%  ---> BORDERLINE
                                           |
                                     [STAGE 2: +1 cycle, wk 24-36]
                                     [Combine all 9+9 measures]
-                                    [obs_red_combined vs MDE = {MDE_9*100:.0f}%]
+                                    [obs_red_combined vs DT = {DT_9*100:.0f}%]
                                           |
-                                          +---> > {MDE_9*100:.0f}% ---> RESPONDER
-                                          +---> <= {MDE_9*100:.0f}% ---> NON-RESP
+                                          +---> > {DT_9*100:.0f}% ---> RESPONDER
+                                          +---> <= {DT_9*100:.0f}% ---> NON-RESP
 
   REMEASUREMENT TRIGGER (during follow-up):
     if on-treatment IS rises >20% above baseline -> repeat protocol or check adherence
@@ -310,7 +312,7 @@ for label, baseline_is, true_tau in examples:
         all_intv = intv.tolist() + intv_s2.tolist()
         r2 = classify_patient(all_ctrl, all_intv, CV_TARGET, stage=2)
         print(f"    --- STAGE 2 RESULT ---")
-        print(f"    combined obs red: {r2['observed_reduction']*100:.1f}% (MDE={r2['mde']*100:.0f}%)")
+        print(f"    combined obs red: {r2['observed_reduction']*100:.1f}% (DT={r2['dt']*100:.0f}%)")
         print(f"    --->  {r2['classification']}")
         print(f"    action: {r2['action']}")
 
@@ -323,15 +325,15 @@ print(f"{'='*86}")
 print(f"""
   CHOICE                        JUSTIFICATION (from simulation)
   -----------------------------------------------------------------------
-  CV=0.15 (standardized)        MDE drops 24% -> {MDE_6*100:.0f}% (saves 24 wk vs 4x3 at CV=0.25)
+  CV=0.15 (standardized)        DT drops 24% -> {DT_6*100:.0f}% (saves 24 wk vs 4x3 at CV=0.25)
                                 Power 68% -> 86% (recalibrated, literature_recalibration.py)
                                 Cost: 1 extra tube per visit
 
   2x3 crossover (not 1x3)      1x3 power = ~55%; 2x3 = 86%; +12 wk justified
                                 2 cycles provide replication (crossover validity)
 
-  3 measures per period         2/period: MDE=18%; 3/period: MDE={MDE_6*100:.0f}%
-  (not 2)                       +1 visit per period = +4 visits total for -4pp MDE
+  3 measures per period         2/period: DT=18%; 3/period: DT={DT_6*100:.0f}%
+  (not 2)                       +1 visit per period = +4 visits total for -4pp DT
 
   2-wk washout                  IS returns to baseline within 2 wk post fiber cessation
                                 (Sirich 2014, standard in published crossover trials)
@@ -341,8 +343,8 @@ print(f"""
                                 Avoids 36-wk fixed design for the 70% already classified
                                 Weak responder power: 20% -> 47% (recalibrated)
 
-  MDE={MDE_6*100:.0f}% threshold          One-sided 95% confidence: <5% chance of false positive
-                                Clinically meaningful: {MDE_6*100:.0f}% IS reduction is a real response
+  DT={DT_6*100:.0f}% threshold          One-sided 95% confidence: <5% chance of false positive
+                                Clinically meaningful: {DT_6*100:.0f}% IS reduction is a real response
 
   IS as primary endpoint        Avoids EPPIC surrogate trap (IS->hard endpoint failed)
                                 Directly answers: "does this patient's IS drop?"

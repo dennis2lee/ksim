@@ -23,8 +23,8 @@ WK_S1   = 24      # stage 1 duration
 WK_S2   = 12      # stage 2 additional
 N_S1    = 6       # measures per arm, stage 1
 N_S2    = 3       # additional measures per arm, stage 2
-MDE_S1  = 1.645 * CV_STD * np.sqrt(2.0 / N_S1)       # 14.2%
-MDE_S2  = 1.645 * CV_STD * np.sqrt(2.0 / (N_S1+N_S2)) # 11.6%
+DT_S1  = 1.645 * CV_STD * np.sqrt(2.0 / N_S1)       # 14.2%
+DT_S2  = 1.645 * CV_STD * np.sqrt(2.0 / (N_S1+N_S2)) # 11.6%
 DRAWS_S1 = 2 * N_S1 * 2   # 24 (duplicate draws)
 DRAWS_S2 = 2 * N_S2 * 2   # 12
 
@@ -88,7 +88,7 @@ for p in range(N_PAT):
     obs1 = np.where(ma1>0, (ma1-mb1)/ma1, 0)
 
     # Stage 1 decision
-    is_resp = obs1 > MDE_S1
+    is_resp = obs1 > DT_S1
     is_nonr = obs1 < 0
     is_bord = ~is_resp & ~is_nonr
 
@@ -106,7 +106,7 @@ for p in range(N_PAT):
         ma_c = A_all.mean(1); mb_c = B_all.mean(1)
         obs_c = np.where(ma_c>0, (ma_c-mb_c)/ma_c, 0)
 
-        s2_resp = obs_c > MDE_S2
+        s2_resp = obs_c > DT_S2
         final_class[p, is_bord & s2_resp] = 'R'
         final_class[p, is_bord & ~s2_resp] = 'N'
 
@@ -198,7 +198,7 @@ def _simulate_published_once(seed, n, tau_mean, tau_sd, baseline_mean, baseline_
         A = bis[i] * (1 + rng2.normal(0, CV_STD, N_S1))
         B = bis[i] * (1-tau_p[i]) * (1 + rng2.normal(0, CV_STD, N_S1))
         obs = (A.mean()-B.mean())/A.mean() if A.mean()>0 else 0
-        if obs > MDE_S1:
+        if obs > DT_S1:
             classified.append('R')
         elif obs < 0:
             classified.append('N')
@@ -207,7 +207,7 @@ def _simulate_published_once(seed, n, tau_mean, tau_sd, baseline_mean, baseline_
             B2 = bis[i] * (1-tau_p[i]) * (1 + rng2.normal(0, CV_STD, N_S2))
             A_c = np.concatenate([A, A2]); B_c = np.concatenate([B, B2])
             obs2 = (A_c.mean()-B_c.mean())/A_c.mean() if A_c.mean()>0 else 0
-            classified.append('R' if obs2 > MDE_S2 else 'N')
+            classified.append('R' if obs2 > DT_S2 else 'N')
     classified = np.array(classified)
     tp = ((classified=='R') & resp).sum()
     fp = ((classified=='R') & ~resp).sum()
@@ -266,7 +266,7 @@ print(f"""
   - EPPIC: our protocol would have identified ~{simulate_published(*(['EPPIC AST-120 arm (Schulman 2015)']+list(cohorts[0][1:])))[4]*100:.0f}% of individual AST-120
     responders — instead of treating all 1000 patients based on mean effect
   - Rossi SYNERGY (small n=37, weak effect): low sensitivity expected (~{simulate_published(*(['Rossi SYNERGY synbiotic (2016)']+list(cohorts[1][1:])))[4]*100:.0f}%)
-    because mean tau ~14% is near the MDE boundary
+    because mean tau ~14% is near the DT boundary
   - Larger pooled cohort (meta): ~{simulate_published(*(['2025 meta-analysis pooled (11 RCTs)']+list(cohorts[4][1:])))[4]*100:.0f}% sensitivity, demonstrating scalability
 
   KEY POINT: these RCTs REPORTED that the intervention "works" (significant mean

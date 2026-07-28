@@ -27,7 +27,8 @@ come from? Are they calibrated to real data?"
 - Every key parameter is anchored to published clinical data — see the calibration table
   in `sensitivity_analysis.py` section (1) and `README.md`.
 - Key references:
-  - IS CV: Pretorius et al. 2013 (*Clin Chim Acta*)
+  - IS CV: Pretorius et al. 2013 (*Clin Chim Acta*), 35.9% for total serum IS. The
+    simulations use a conservative baseline of 0.25, which is a modeling assumption.
   - AST-120: Schulman et al. 2015 EPPIC (*JASN*)
   - Fiber effects: Wathanavasin et al. 2025 (*Toxins*, pooled SMD −0.34), Rossi et al. 2016 SYNERGY (*CJASN*), Esgalhado et al. 2020 (*Food Funct*), Sirich et al. 2014 (*CJASN*)
   - CKD progression: Inker et al. 2017 (*CJASN*, CRIC), Levey et al. 1999 (MDRD, *JASN*)
@@ -60,15 +61,19 @@ the entire clinical benefit estimate is meaningless."
 this is practical in a CKD outpatient setting?"
 
 **Response**:
-- IS within-person CV of 0.18–0.25 is documented (Pretorius et al. 2013, *Clin Chim Acta*;
-  Deltombe et al. 2015, *Toxins*). Sources of variability:
+- Pretorius et al. 2013 (*Clin Chim Acta*) estimate the within-person biological CV of
+  total serum IS at 35.9%, with a critical difference of 100% between two single
+  measurements. The simulations use a conservative baseline of 0.25. The breakdown below
+  is an assumed decomposition, not a measured one, and has not been validated in a CKD
+  outpatient setting:
   - Assay: CV 5–8% (LC-MS/MS)
   - Diurnal: CV 10–12% (reducible by AM timed draw)
   - Dietary: CV 8–10% (reducible by fasting protocol)
-  - Day-to-day: CV 8–12% (reducible by within-visit duplicate)
-- Standardization (AM fasting + duplicate draw) targets the two largest
+  - Day-to-day: CV 8–12% (reducible by within-visit duplicate assay)
+- Standardization (AM fasting + duplicate assay) targets the two largest
   reducible components. CV reduction from 0.25 to ~0.15 requires only:
-  **one extra blood tube per visit** (duplicate) + standardized timing.
+  **a repeat assay on the sample already drawn** + standardized timing. It adds
+  no extra venipunctures.
 - This is a minimal, low-cost intervention in any outpatient setting.
 - **Mitigation in code**: `sensitivity_analysis.py` section (5) shows feasibility
   evidence and a CV sweep from 0.25 (pessimistic) to 0.12 (composite endpoint).
@@ -93,11 +98,13 @@ How general are they?"
 
 ## (f) Statistical rigor
 
-**Critique**: "The MDE formula is a normal approximation. The adaptive design has no
+**Critique**: "The threshold formula is a normal approximation. The adaptive design has no
 formal multiplicity adjustment. The Bayesian shrinkage is simplistic."
 
 **Response**:
-- **MDE formula**: The normal approximation is standard for paired-comparison
+- **Threshold formula**: DT = 1.645 x CV x sqrt(2/n) is a one-sided critical difference
+  at alpha = 0.05, not a power-based minimum detectable effect (an 80%-power MDE would
+  add z(1-beta) to the multiplier). The normal approximation is standard for paired-comparison
   designs with n ≥ 4 per arm (Duan et al., *J Clin Epidemiol* 2013). With
   N_REP=200 Monte Carlo replications per patient, we validate the approximation
   empirically — simulated power matches analytical predictions within ±3 pp.
@@ -109,7 +116,7 @@ formal multiplicity adjustment. The Bayesian shrinkage is simplistic."
   populations and recommend mixture-model EB. The threshold-based detection
   (not EB) is the primary decision rule.
 - **Mitigation in code**: `sensitivity_analysis.py` section (6) shows that
-  FP can be reduced to ~6% by raising the threshold by 20% (MDE × 1.2),
+  FP can be reduced to ~6% by raising the threshold by 20% (DT × 1.2),
   losing only ~5 pp overall power.
 
 ## (g) FP 14% — clinical implications
@@ -124,7 +131,7 @@ ineffective regimen. Is this acceptable?"
 - Comparison: most diagnostic tests accept 5–15% FP for similar trade-offs
   (e.g., PSA screening, mammography).
 - **Adjustable**: `nof1_weak_rescue.py` and `sensitivity_analysis.py` section (6)
-  show the FP-power trade-off curve. Raising threshold by 20% (MDE × 1.2)
+  show the FP-power trade-off curve. Raising threshold by 20% (DT × 1.2)
   reduces FP to ~6% at a cost of ~5 pp overall power.
 - The protocol includes a **quarterly deprescribe review** (from `redteam_loop.py`):
   false positives will be caught as the patient's IS fails to show sustained benefit

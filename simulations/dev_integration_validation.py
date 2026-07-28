@@ -58,7 +58,7 @@ print(f"P(engineered > naive on IS): {np.mean(de>dn)*100:.0f}%")
 # --------------------------------------------------------------------------
 # n-of-1 DECISION THRESHOLDS: detect a true component effect against IS noise.
 # within-person IS variability (assay+biology) CV ~ 0.22. Use averaged measurements.
-# Minimum detectable effect (MDE) at 95% one-sided, with k baseline + k post draws.
+# One-sided decision threshold (DT) at 95% one-sided, with k baseline + k post draws.
 # --------------------------------------------------------------------------
 print("\n" + "="*78)
 print("n-of-1 DECISION RULE: min OBSERVED IS drop to confirm a real effect (95%)")
@@ -66,7 +66,7 @@ print("="*78)
 CV = 0.22
 for k in [1,2,3]:
     se = CV*np.sqrt(2.0/k)              # SE of (mean_post-mean_base)/base, two groups of k
-    mde = 1.645*se                      # one-sided 95%
-    print(f"  {k} baseline + {k} post measurements -> confirm if observed drop > {mde*100:>2.0f}%")
+    dt = 1.645*se                      # one-sided 95%
+    print(f"  {k} baseline + {k} post measurements -> confirm if observed drop > {dt*100:>2.0f}%")
 print("\n  Read: with 2+2 measurements, an observed IS drop >26% is unlikely to be noise.")
 print("  Stepwise add (fiber->sorbent->spore probiotic), re-measure, keep only what clears its threshold.")
