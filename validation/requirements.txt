@@ -1,0 +1,11 @@
+# Pinned environment used to produce every number in the manuscript and the
+# supplement. Reproduce with:
+#
+#   python3 -m venv .venv && . .venv/bin/activate
+#   pip install -r validation/requirements.txt
+#   python3 validation/reproduce_all.py
+#
+# Python 3.14.6 was used for the submitted results; 3.8 or later is sufficient.
+# The only third-party dependency is numpy. Normal-distribution quantiles come
+# from the standard library (statistics.NormalDist), so scipy is not required.
+numpy==2.4.6

@@ -60,24 +60,38 @@ the entire clinical benefit estimate is meaningless."
 **Critique**: "You assume measurement noise can be reduced by 40%. Is there evidence
 this is practical in a CKD outpatient setting?"
 
-**Response**:
-- Pretorius et al. 2013 (*Clin Chim Acta*) estimate the within-person biological CV of
-  total serum IS at 35.9%, with a critical difference of 100% between two single
-  measurements. The simulations use a conservative baseline of 0.25. The breakdown below
-  is an assumed decomposition, not a measured one, and has not been validated in a CKD
-  outpatient setting:
-  - Assay: CV 5–8% (LC-MS/MS)
-  - Diurnal: CV 10–12% (reducible by AM timed draw)
-  - Dietary: CV 8–10% (reducible by fasting protocol)
-  - Day-to-day: CV 8–12% (reducible by within-visit duplicate assay)
-- Standardization (AM fasting + duplicate assay) targets the two largest
-  reducible components. CV reduction from 0.25 to ~0.15 requires only:
-  **a repeat assay on the sample already drawn** + standardized timing. It adds
-  no extra venipunctures.
-- This is a minimal, low-cost intervention in any outpatient setting.
-- **Mitigation in code**: `sensitivity_analysis.py` section (5) shows feasibility
-  evidence and a CV sweep from 0.25 (pessimistic) to 0.12 (composite endpoint).
-  Main conclusions hold for CV ≤ 0.18.
+**Response**: No. This was the critique we got wrong, and the answer is that
+the reduction is not achievable. An earlier version of this document argued that
+"CV reduction from 0.25 to ~0.15 requires only a repeat assay on the sample
+already drawn plus standardized timing". That argument was invalid, for a reason
+visible in its own component list: it treated day-to-day biological variation as
+reducible by a within-visit duplicate assay. It is not. Repeating an assay on one
+specimen averages down only the analytical component:
+
+    CV²_total = CV²_biological + CV²_pre-analytical + CV²_analytical / k
+
+Running that decomposition (`validation/variance_components_analysis.py`) against
+the 35.9% within-person biological CV that Pretorius et al. 2013
+(*Clin Chim Acta*) report for total serum IS:
+
+- A duplicate assay changes the total CV by **at most 0.004** in every scenario.
+- The reachable total CV with sampling standardization is **0.22 to 0.30**,
+  depending on how much of the biological variance is attributed to
+  standardizable sources (one-third, one-half or two-thirds).
+- Reaching a total CV of 0.15 would require the **irreducible biological
+  component alone** to be 0.112 to 0.138, against a reported 0.359.
+
+CV 0.15 is therefore reported throughout as a hypothetical scenario, never as a
+target, and the main results are given across the whole plausible range. At the
+reachable values, sensitivity under the primary rule is 51% to 74% and
+weak-responder detection 9% to 17%: the design identifies large responders and
+misses weak ones.
+
+What survives is the comparison, made now on a common burden scale
+(`validation/efficiency_analysis.py`): sampling standardization buys 15.9
+sensitivity points with no additional weeks and no additional venipunctures,
+against 11.8 points for doubling the number of cycles at 22 additional weeks.
+The two levers act on the same standard error and are sub-additive.
 
 ## (e) Single-patient origin — generalizability
 

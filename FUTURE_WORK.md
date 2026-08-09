@@ -10,16 +10,22 @@ six-step clinical protocol with decision engine, and manuscript targeting CPT:PS
 
 ### 1A. Retrospective IS variability characterization (Priority: ★★★)
 
-**Goal**: Confirm the CV=0.15 assumption by measuring actual within-person IS variability
-under standardized conditions in CKD patients.
+**Goal**: Measure the actual within-person IS variability in CKD patients under
+standardized and unstandardized conditions, and partition it into standardizable
+and irreducible components. The CV=0.15 figure used in early versions of this
+work is not reachable (see LIMITATIONS.md (d)); what is unknown is where in the
+0.22–0.30 band the reachable value actually sits.
 
 **Design**: Single-center observational study. Recruit 20–30 CKD stage 3b–4 patients.
 Collect duplicate fasting AM serum IS draws at 3 visits over 2 weeks (no intervention).
 Compute within-person CV under standardized versus unstandardized conditions.
 
-**Why first**: The entire protocol's efficiency rests on achievable CV. If CV=0.15 is
-not reachable, the DT stays at 24% and the design reverts to a 4-cycle requirement.
-Conversely, if CV turns out to be 0.12, the protocol becomes even more powerful.
+**Why first**: The entire protocol's efficiency rests on the achievable CV, and
+the variance decomposition says that number is bounded below by irreducible
+day-to-day biology rather than by assay quality. Two measurements settle it: the
+within-person CV of serum IS in CKD outpatients, and how much of it standardized
+sampling removes. Together they determine whether this design can answer anything
+beyond the large-responder question. Neither requires a trial.
 
 **What's needed**: IRB approval, LC-MS/MS IS assay access (or partnership with a reference
 lab), 20–30 consenting CKD patients, ~2 months of data collection.

@@ -187,25 +187,33 @@ print(f"""
 print(f"\n{'='*90}")
 print("(5) CV REDUCTION FEASIBILITY — clinical evidence")
 print(f"{'='*90}")
-print(f"""
-  Source of IS variability       Contribution    Reducible?
-  ---------------------------------------------------------------
-  Assay (LC-MS/MS)               CV ~5-8%       partly (duplicate)
-  Diurnal variation               CV ~10-12%     YES (timed draw)
-  Dietary influence (Trp load)    CV ~8-10%      YES (fasting)
-  Day-to-day biological           CV ~8-12%      partly (multiple days)
-  ---------------------------------------------------------------
-  Combined (root-sum-square)      CV ~18-25%     achievable target: 12-18%
+print("""
+  SUPERSEDED. An earlier version of this section listed a component breakdown
+  and concluded "CV = 0.15 is ACHIEVABLE". Both the conclusion and two of the
+  literature attributions supporting it were wrong, and they are removed rather
+  than reworded.
 
-  Literature evidence for standardization:
-  - Deltombe O et al, Toxins 2015: IS intra-individual CV = 18-24%
-    with unstandardized sampling; 14-18% with AM fasting protocol
-  - Meijers B et al, NDT 2014: duplicate sampling reduced effective CV by ~30%
-  - Conclusion: CV = 0.15 is ACHIEVABLE with:
-    (1) AM fasting draw (eliminate dietary Trp contribution)
-    (2) Timed collection (reduce diurnal component)
-    (3) Duplicate assay (reduce analytical noise)
-    CV = 0.12 requires 24h urine collection (harder compliance)""")
+  The conclusion was wrong because the breakdown treated day-to-day biological
+  variation as reducible by a within-visit duplicate assay. Repeating an assay
+  on one specimen averages down only the analytical component:
+
+      CV^2_total = CV^2_biological + CV^2_pre-analytical + CV^2_analytical / k
+
+  Running that decomposition against the 35.9% within-person biological CV that
+  Pretorius et al. 2013 (Clin Chim Acta) report for total serum IS:
+
+    - a duplicate assay changes the total CV by at most 0.004
+    - the reachable total with sampling standardization is 0.22 to 0.30
+    - reaching 0.15 would need the irreducible biological component alone to be
+      0.112 to 0.138, against a reported 0.359
+
+  The two removed attributions were an intra-individual CV figure credited to
+  Deltombe et al. 2015 (that paper reports protein binding of uremic toxins, not
+  biological variation) and a "duplicate sampling reduced effective CV by ~30%"
+  figure credited to a 2014 NDT paper, which we could not verify and which the
+  variance algebra above contradicts in any case.
+
+  Authoritative version: validation/variance_components_analysis.py""")
 
 # CV sweep with power for weak responders
 e0,sl0,t0,b0,resp0,wk0 = make_cohort()

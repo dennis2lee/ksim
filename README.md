@@ -29,10 +29,12 @@ comparisons unreliable.
 4. **Tests robustness** under 8 distributional violations (log-normal IS, bimodal
    treatment effects, correlated noise, partial carryover, combined worst case)
 
-The central finding: reducing measurement CV from 0.25 to 0.15 through
-standardized sampling (fasting, timed draws, duplicate assays) is more efficient
-than doubling the number of crossover cycles — saving 24 weeks of protocol time
-at a cost of one extra blood tube per visit.
+The central finding: sampling standardization is a more efficient design lever
+than extending the protocol. It buys 15.9 sensitivity points with no additional
+weeks and no additional venipunctures, against 11.8 points for doubling the
+number of crossover cycles at a cost of 22 additional weeks. That comparison is
+made at CV values a standardization package can actually reach, which is 0.22 to
+0.30 rather than the 0.15 assumed in earlier versions of this work.
 
 ## Repository Structure
 
@@ -59,13 +61,21 @@ ksim/
 │   ├── nof1_weak_rescue.py             Weak responder strategies (adaptive + CV reduction)
 │   └── clinical_protocol.py            Step-by-step protocol + classify_patient() function
 │
-├── validation/           8 scripts — robustness, calibration, and reproducibility
-│   ├── robustness_experiments.py       8 distributional stress tests (N=1000 each)
-│   ├── evsi_analysis.py                Classification-efficiency frontier (NCC vs CV, 50-seed mean)
-│   ├── large_scale_validation.py       N=1000 end-to-end + published RCT reproduction
-│   ├── reproduce_manuscript_numbers.py Single script regenerating all manuscript figures
-│   ├── threshold_sensitivity.py        Responder-definition threshold sweep (5/10/15/20%)
-│   ├── sensitivity_analysis.py         Tornado sweep across 8 literature-calibrated params
+├── validation/           one generative model, plus the analyses that call it
+│   ├── nof1_core.py                    THE model: cohort, measurement, protocol, decision rules
+│   ├── reproduce_all.py                One command; regenerates every published number
+│   ├── requirements.txt                Pinned environment
+│   ├── reproduce_manuscript_numbers.py Cohort, Table 1, Table 2, inline numbers
+│   ├── decision_rule_analysis.py       Decision rules, CV sweep, cost-ratio sensitivity
+│   ├── robustness_experiments.py       Reference plus 8 distributional stress conditions
+│   ├── crossover_order_analysis.py     Cycle order and period effects
+│   ├── variance_components_analysis.py Variance components, attrition, adherence
+│   ├── efficiency_analysis.py          Joint design efficiency on a common burden scale
+│   ├── published_cohorts.py            Cohorts parameterized to published trials
+│   ├── threshold_sensitivity.py        Responder-definition threshold sweep
+│   ├── nonresponder_fraction_sensitivity.py
+│   ├── threshold_approximation_check.py Critical-value accuracy vs the empirical null
+│   ├── sensitivity_analysis.py         Tornado sweep across literature-calibrated params
 │   ├── literature_recalibration.py     Before/after comparison with published data
 │   └── novelty_and_gap_analysis.py     RCT vs n-of-1 gap quantification
 │
@@ -81,33 +91,52 @@ ksim/
 ```bash
 pip install numpy matplotlib
 
-# Run any script independently — all are self-contained
-python simulations/gut_clearance_model.py
-python protocol/nof1_virtual_cohort.py
-python validation/robustness_experiments.py
+# Reproduce every number in the manuscript and the supplement, in one command.
+# Any Python warning is promoted to an error, so a clean run means a clean run.
+# Writes a full transcript to validation/reproduce_all.log (about 4 minutes).
+python validation/reproduce_all.py
 
-# Reproduce every number in the manuscript
-python validation/reproduce_manuscript_numbers.py
-
-# Run all simulations
-for f in simulations/*.py protocol/*.py validation/*.py; do
-  echo "=== $f ===" && python "$f"
-done
+# Or run a single analysis
+python validation/decision_rule_analysis.py
+python validation/variance_components_analysis.py
 ```
 
 ## Key Results
 
-| Metric | Value | Source script |
-|--------|-------|--------------|
-| Single-run sensitivity | 95.1% | `validation/reproduce_manuscript_numbers.py` |
-| Single-run specificity | 85.7% | same |
-| Worst-case sensitivity (combined violations) | 92.0% | `validation/robustness_experiments.py` |
-| Worst-case specificity | 81.1% | same |
-| Weak responder detection (τ 10–20%) | 76% | same |
-| Peak NCC (classification-efficiency frontier) | CV ≈ 0.12–0.15 | `validation/evsi_analysis.py` |
-| Average protocol duration | 26.7 weeks | `validation/reproduce_manuscript_numbers.py` |
-| Patients needing Stage 2 | 23% | same |
-| Specificity across responder thresholds (θ 5→20%) | 89.3→65.8% | `validation/threshold_sensitivity.py` |
+The primary decision rule tests H0: τ ≤ 0.10, so the statistical null matches
+the 10% definition of a true responder. Numbers under the zero-effect null
+(H0: τ ≤ 0), which earlier versions of this work reported as primary, are kept
+as a clearly labelled secondary analysis of a different question.
+
+| Metric | Primary rule | Zero-effect null | Source script |
+|--------|--------------|------------------|---------------|
+| Single-run sensitivity (CV 0.15) | 83.4% | 95.1% | `validation/reproduce_manuscript_numbers.py` |
+| Single-run specificity (CV 0.15) | 99.2% | 85.7% | same |
+| Weak responder detection (τ 10–20%) | 28% | 76% | same |
+| Overall one-sided type I error | 5.1% after alpha-spending | 6.1% uncorrected | same |
+| Reachable total CV | 0.22 to 0.30 | same | `validation/variance_components_analysis.py` |
+| Sensitivity at the reachable CV 0.26 | 65.2% | — | `validation/efficiency_analysis.py` |
+| Gain from sampling standardization | +15.9 points, no extra weeks | — | same |
+| Gain from doubling cycles | +11.8 points, +22 weeks | — | same |
+| Best cycle order (worst-case bias) | randomized, 2.42 pp | — | `validation/crossover_order_analysis.py` |
+
+Two claims made in earlier versions of this work do not survive and are
+withdrawn:
+
+- **There is no optimal CV.** Under the matched null, net correct
+  classifications rise monotonically as CV falls (636 at CV 0.36 to 919 at
+  CV 0.10), at every false-positive-to-false-negative cost ratio examined. The
+  apparent optimum near CV 0.12 was an artifact of testing against a
+  zero-effect null while labelling responders at 10%.
+- **CV 0.15 is not reachable.** Duplicate assays divide only the analytical
+  variance, contributing at most 0.004 to the total. Reaching 0.15 would
+  require an irreducible biological CV of 0.112 to 0.138 against a reported
+  within-person biological CV of 0.359.
+
+One robustness scenario was also found to be vacuous: the estimator is a
+within-patient ratio, so the baseline cancels exactly and a log-normal baseline
+leaves every classification bit-identical. It is now reported as an analytic
+invariance, not an empirical result.
 
 ## Parameter Sources
 
@@ -125,10 +154,13 @@ done
 The protocol classifies individual CKD patients as IS responders or non-responders:
 
 1. **Eligibility**: CKD 3b–4, stable eGFR, IS assay available
-2. **Standardize**: Fasting AM draws, duplicate assays → CV ≈ 0.15
-3. **Stage 1**: 2 × 3 AB crossover (24 weeks, 12 visits)
-4. **Classify**: obs_red > 14% → Responder; obs_red < 0% → Non-responder; 0–14% → Borderline
-5. **Stage 2**: Borderline patients get 1 extra cycle (wk 24–36), threshold 12%
+2. **Standardize**: Fasting AM draws and timed collection, reaching CV ≈ 0.26
+3. **Stage 1**: 2 × 3 crossover (24 weeks, 12 visits), period order randomized
+   independently within each cycle
+4. **Classify** against H0: τ ≤ 10%, so the test matches the responder
+   definition: obs_red > 35.1% → Responder; obs_red < 10% → Non-responder;
+   in between → Borderline
+5. **Stage 2**: Borderline patients get 1 extra cycle (wk 24–36), threshold 30.5%
 6. **Follow-up**: Responders monitored quarterly; non-responders deprescribed
 
 The decision engine is implemented in `protocol/clinical_protocol.py` as the
