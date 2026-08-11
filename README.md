@@ -1,12 +1,19 @@
-# ksim — In-Silico N-of-1 Trial Design for Uremic Toxin Clearance in CKD
+# ksim: In-Silico N-of-1 Trial Design for Uremic Toxin Clearance in CKD
+
+> **This is a research simulation framework and a candidate trial design, not a
+> clinical decision tool.** Every operating characteristic here describes how a
+> protocol behaves under a model, not in a clinic. A responder or non-responder
+> call is a statement about what a simulated protocol demonstrated; it is not a
+> recommendation to start, continue or stop any treatment. Do not use this code
+> or these thresholds for patient care.
 
 Simulation framework for designing and validating personalized n-of-1 crossover
 trials that detect individual indoxyl sulfate (IS) reduction from gut-clearance
 interventions in chronic kidney disease (CKD stage 3b–4).
 
-**Paper**: Lee P, Lee TJ. "Measurement Noise Optimization as a Design Lever for N-of-1
-Trials: In-Silico Validation of Personalized Gut-Clearance Protocols in Chronic
-Kidney Disease." (2026, targeting CPT: Pharmacometrics & Systems Pharmacology)
+**Paper**: Lee P, Lee TJ. "Reachable Measurement Precision and the Cost of a
+Mismatched Null in N-of-1 Biomarker Trials: An In Silico Study in Chronic Kidney
+Disease." (2026, under review)
 
 ## The Problem
 
@@ -56,7 +63,7 @@ ksim/
 │   ├── redteam_loop.py                 15-round adversarial refinement (R: 48→82)
 │   └── why_experts_failed_revalidation.py  10-pass expert failure escape analysis
 │
-├── protocol/             3 scripts — n-of-1 trial design and clinical decision engine
+├── protocol/             3 scripts — n-of-1 design and candidate classification rule
 │   ├── nof1_virtual_cohort.py          N=100 virtual cohort, crossover power analysis
 │   ├── nof1_weak_rescue.py             Weak responder strategies (adaptive + CV reduction)
 │   └── clinical_protocol.py            Step-by-step protocol + classify_patient() function
@@ -146,7 +153,7 @@ invariance, not an empirical result.
 | IS baseline CKD4 | 5.4 ± 3.6 µg/mL | Lin et al. 2011 |
 | Fiber IS reduction (pooled) | SMD −0.34 | Wathanavasin et al. 2025, *Toxins*, 11 RCTs, N=398 |
 | CKD4 eGFR slope | −2.0 mL/min/1.73 m²/yr | CRIC Study / MDRD |
-| Non-responder fraction | 18% (conservative) | Estimated from meta I² + crossover data |
+| Non-responder fraction | 18% (scenario assumption) | Not estimable from published data; see Table S5 sweep |
 | Gut microbiome variability | SD 0.35 | Wu et al. 2011, *Science* |
 
 ## Clinical Protocol Summary
@@ -161,9 +168,9 @@ The protocol classifies individual CKD patients as IS responders or non-responde
    definition: obs_red > 35.1% → Responder; obs_red < 10% → Non-responder;
    in between → Borderline
 5. **Stage 2**: Borderline patients get 1 extra cycle (wk 24–36), threshold 30.5%
-6. **Follow-up**: Responders monitored quarterly; non-responders deprescribed
+6. **After classification**: The call records what the protocol demonstrated. It is not a recommendation to continue or stop treatment.
 
-The decision engine is implemented in `protocol/clinical_protocol.py` as the
+The classification rule is implemented in `protocol/clinical_protocol.py` as the
 `classify_patient()` function — input IS measurements, output classification.
 
 ## License
@@ -177,10 +184,9 @@ decisions without empirical validation.
 ## Citation
 
 ```
-Lee P, Lee TJ. Measurement Noise Optimization as a Design Lever for N-of-1 Trials:
-In-Silico Validation of Personalized Gut-Clearance Protocols in Chronic Kidney
-Disease. 2026. https://github.com/dennis2lee/ksim
-```
+Lee P, Lee TJ. Reachable Measurement Precision and the Cost of a Mismatched Null
+in N-of-1 Biomarker Trials: An In Silico Study in Chronic Kidney Disease. 2026.
+
 
 ## Author
 
