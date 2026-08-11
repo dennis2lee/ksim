@@ -11,10 +11,15 @@ Two problems with the previous version:
   2. No Monte Carlo uncertainty was reported, so there was no way to judge
      whether 5.1% differed from 5%.
 
-Here the seed blocks are disjoint by construction: calibration uses 900-919 and
-validation uses 3000-3199, and the script asserts they do not intersect. Every
-rate is reported with a Monte Carlo standard error computed across seeds, each
-seed being one independent replication of the whole cohort.
+Here the seed blocks are disjoint by construction: calibration uses 900-919,
+validation uses 3000-3199 and the CV audit uses 4000-4099, and the script
+asserts they are pairwise disjoint. Every rate is reported with a Monte Carlo
+standard error computed across seeds, each seed being one independent
+replication of the whole cohort.
+
+A third problem, raised later (review item R18), is that one calibration at
+CV 0.15 was being applied at every CV the paper reports without anyone checking
+what it achieved there. The CV grid section below checks it.
 
 Type I error is evaluated on a null cohort, every tau set to the null margin,
 which is the boundary of H0. That is the quantity the boundaries are supposed
@@ -34,7 +39,14 @@ CV = 0.15
 
 CALIB_SEEDS = range(900, 920)          # boundaries are tuned here
 VALID_SEEDS = range(3000, 3200)        # and tested here, on 200 fresh seeds
-assert not (set(CALIB_SEEDS) & set(VALID_SEEDS)), 'seed blocks must be disjoint'
+CV_AUDIT_SEEDS = range(4000, 4100)     # and audited across CV here
+_BLOCKS = (set(CALIB_SEEDS), set(VALID_SEEDS), set(CV_AUDIT_SEEDS))
+assert sum(map(len, _BLOCKS)) == len(set().union(*_BLOCKS)), \
+    'seed blocks must be pairwise disjoint'
+
+# The reachable range the manuscript reports is 0.22 to 0.30; 0.10 and 0.36
+# bracket it on either side so the trend is visible rather than asserted.
+CV_GRID = (0.10, 0.15, 0.22, 0.26, 0.30, 0.36)
 
 cohort = make_cohort(N_PAT, COHORT_SEED, 0.18)
 
@@ -141,6 +153,44 @@ for label, kw in DEPARTURES:
     flag = '  <-- exceeds 5%' if ci[0] > 0.05 else ''
     print(f'  {label:<44}{m*100:>8.2f}%{se*100:>8.2f}%   '
           f'[{ci[0]*100:.2f}%, {ci[1]*100:.2f}%]{flag}')
+
+banner('R18. THE BOUNDARY IS CALIBRATED AT ONE CV AND APPLIED AT ALL OF THEM')
+print('  The calibration above was run at CV 0.15. The resulting alpha1 and')
+print('  alpha2 are then used unchanged at every CV the paper reports, so the')
+print('  5% claim is a claim about CV 0.15 and needs checking elsewhere. The')
+print('  critical value itself scales with CV, but the ratio statistic is not')
+print('  exactly normal and its departure from normality grows with CV, so the')
+print('  achieved error does not stay fixed.\n')
+print(f'  Audit seeds {CV_AUDIT_SEEDS.start}-{CV_AUDIT_SEEDS.stop - 1}, disjoint '
+      'from both the calibration and the validation blocks.\n')
+print(f'  {"total CV":>10}{"error":>9}{"MC SE":>9}   95% interval')
+print('  ' + '-' * 56)
+nc_cv = null_cohort(THETA)
+for cv_grid in CV_GRID:
+    rates = []
+    for s in CV_AUDIT_SEEDS:
+        r = run_protocol(nc_cv, cv=cv_grid, measurement_seed=s,
+                         theta=THETA + 1e-9, null_margin=THETA,
+                         alpha1=cal['alpha1'], alpha2=cal['alpha2'],
+                         order='randomized')
+        an = ~r['dropped']
+        rates.append(((r['cls'] == 'R') & an).sum() / max(an.sum(), 1))
+    a = np.asarray(rates)
+    m = float(a.mean())
+    se = float(a.std(ddof=1) / np.sqrt(len(a)))
+    lo, hi = m - 1.96 * se, m + 1.96 * se
+    note = ('  <-- above 5%' if lo > 0.05 else
+            '  reachable range' if 0.22 <= cv_grid <= 0.30 else '')
+    print(f'  {cv_grid:>10.2f}{m*100:>8.2f}%{se*100:>8.2f}%   '
+          f'[{lo*100:.2f}%, {hi*100:.2f}%]{note}')
+print("""
+  The boundary is conservative over the model-implied reachable range 0.22 to
+  0.30 and mildly liberal below the calibration point: at CV 0.10 the interval
+  lies above 5%. We report the excess rather than hide it. A single fixed
+  boundary is kept for the main analysis because a candidate trial fixes its
+  standardization package, and therefore its assumed CV, before it starts; the
+  consequence is that such a trial must calibrate its own boundary by simulation
+  at that prespecified CV rather than reuse the numbers here.""")
 
 banner('R12. OPERATING CHARACTERISTICS WITH MONTE CARLO UNCERTAINTY')
 print('  Reference cohort, held-out seeds, primary rule.\n')

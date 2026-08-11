@@ -122,10 +122,21 @@ formal multiplicity adjustment. The Bayesian shrinkage is simplistic."
   designs with n ≥ 4 per arm (Duan et al., *J Clin Epidemiol* 2013). With
   N_REP=200 Monte Carlo replications per patient, we validate the approximation
   empirically — simulated power matches analytical predictions within ±3 pp.
-- **Multiplicity**: The adaptive design uses a two-stage approach without formal
-  alpha-spending adjustment. The empirical FP rate (measured from simulation)
-  is reported directly — it rises from 5% to ~14%. This is transparent.
-  Formal O'Brien-Fleming spending could reduce FP to ~8% at modest power cost.
+- **Multiplicity**: this response is superseded. It described a two-stage design
+  with no formal alpha-spending adjustment and quoted an FP rate rising from 5%
+  to about 14%. Both statements are now wrong, and the second was wrong in a way
+  that mattered. The ~14% was the false-positive rate among true non-responders
+  under a rule whose null (no effect) disagreed with the label defining a
+  responder (a 10% reduction), so it counted a patient with a real 6% effect as
+  a false positive whenever the protocol worked. It was never an overall type I
+  error. The current design tests H0: tau <= 0.10, matching the null to the
+  label, and allocates alpha with a one-sided O'Brien-Fleming spending function
+  calibrated by simulation. On held-out seeds the overall one-sided type I error
+  is 4.98% (Monte Carlo SE 0.05%), at CV 0.15 under independent errors. It is
+  not 5% everywhere: `sequential_error_validation.py` audits the fixed boundary
+  across the CV grid and reports 5.35% at CV 0.10 and 4.00% at CV 0.30, and it
+  reaches 11.81% under within-period correlation of 0.5 unless the boundary is
+  widened for the correlation.
 - **Bayesian shrinkage**: We explicitly note that simple EB fails for bimodal
   populations and recommend mixture-model EB. The threshold-based detection
   (not EB) is the primary decision rule.
@@ -133,22 +144,31 @@ formal multiplicity adjustment. The Bayesian shrinkage is simplistic."
   FP can be reduced to ~6% by raising the threshold by 20% (DT × 1.2),
   losing only ~5 pp overall power.
 
-## (g) FP 14% — clinical implications
+## (g) The 14% figure, and why this section no longer argues for it
 
 **Critique**: "A 14% false positive rate means about 1 in 7 non-responders continues an
 ineffective regimen. Is this acceptable?"
 
-**Response**:
-- The gut-clearance regimen (fiber sachet, probiotic) has **low harm potential**:
-  main cost is burden/adherence, not toxicity. A false positive means continued
-  fiber intake — not continued chemotherapy.
-- Comparison: most diagnostic tests accept 5–15% FP for similar trade-offs
-  (e.g., PSA screening, mammography).
-- **Adjustable**: `nof1_weak_rescue.py` and `sensitivity_analysis.py` section (6)
-  show the FP-power trade-off curve. Raising threshold by 20% (DT × 1.2)
-  reduces FP to ~6% at a cost of ~5 pp overall power.
-- The protocol includes a **quarterly deprescribe review** (from `redteam_loop.py`):
-  false positives will be caught as the patient's IS fails to show sustained benefit
-  on follow-up monitoring.
-- **Bottom line**: for a low-risk, dietary intervention, 14% FP with quarterly
-  review is clinically defensible.
+**Response**: this section previously answered that question on its own terms, arguing
+that 14% was clinically defensible for a low-risk dietary intervention because a
+quarterly deprescribe review would catch the errors. That answer is withdrawn in full,
+for two separate reasons.
+
+- The premise was wrong. As set out in (f), the 14% was an artifact of a null that
+  disagreed with the responder definition, not a type I error. Defending a number is
+  the wrong response to a number that should not have existed.
+- The framing was wrong. This work is a research simulation framework and a candidate
+  design. It does not issue treatment recommendations, so there is no "continues an
+  ineffective regimen" to weigh, no deprescribing logic, and no quarterly clinical
+  review in it. A responder or non-responder call here is a statement about what a
+  simulated protocol demonstrated. It is not advice to start, continue or stop
+  anything, and it must not be used that way.
+
+The candidate intervention is dietary fiber against a matched placebo. Earlier versions
+of this file also named a probiotic arm; the simulation never modelled one, and the
+reference to it is removed rather than left to imply a regimen we did not study.
+
+What remains true, and is the useful part of the original question, is that the
+sensitivity of this design is modest at reachable measurement precision: at a total CV
+of 0.26 it detects about 12% of weak responders. That is a limitation of the design,
+reported in the manuscript, and it is not fixed by adjusting a threshold.

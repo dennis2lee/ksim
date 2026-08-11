@@ -36,12 +36,17 @@ comparisons unreliable.
 4. **Tests robustness** under 8 distributional violations (log-normal IS, bimodal
    treatment effects, correlated noise, partial carryover, combined worst case)
 
-The central finding: sampling standardization is a more efficient design lever
-than extending the protocol. It buys 15.9 sensitivity points with no additional
-weeks and no additional venipunctures, against 11.8 points for doubling the
-number of crossover cycles at a cost of 22 additional weeks. That comparison is
-made at CV values a standardization package can actually reach, which is 0.22 to
-0.30 rather than the 0.15 assumed in earlier versions of this work.
+The central finding, stated with the condition it depends on: under the
+optimistic and intermediate variance splits, sampling standardization is a more
+efficient design lever than extending the protocol. It buys 21.9 and 15.9
+sensitivity points with no additional weeks and no additional venipunctures,
+against 11.7 to 11.8 points for doubling the number of crossover cycles at a
+cost of 22 additional weeks. Under the pessimistic split the comparison
+reverses: standardization buys 10.0 points and doubling the cycles buys 11.7, so
+the general claim that standardization is the better lever does not hold and is
+not made here. All three comparisons are made at CV values a standardization
+package can actually reach, which is 0.22 to 0.30 rather than the 0.15 assumed
+in earlier versions of this work.
 
 ## Repository Structure
 
