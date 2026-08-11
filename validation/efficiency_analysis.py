@@ -42,17 +42,32 @@ PRIMARY = dict(theta=THETA, null_margin=THETA,
 # variance-component scenario of variance_components_analysis.py
 # (cv_bio_irreducible 0.254, cv_bio_standardizable 0.254, cv_pre 0.08,
 #  cv_analytical 0.06).
-PACKAGES = [
-    ('none', total_cv(cv_bio=np.hypot(0.254, 0.254), cv_pre=0.08,
-                      cv_analytical=0.06, n_replicates=1), 0, 1),
-    ('sampling standardization', total_cv(cv_bio=0.254, cv_pre=0.04,
-                                          cv_analytical=0.06, n_replicates=1),
-     1, 1),
-    ('standardization + duplicate assay',
-     total_cv(cv_bio=0.254, cv_pre=0.04, cv_analytical=0.06, n_replicates=2),
-     1, 2),
-    ('hypothetical CV 0.15 (not reachable above)', 0.15, 2, 2),
+# Three variance splits, not one. The efficiency conclusion is conditional on
+# which of these holds; an earlier version reported only the intermediate case,
+# which made the conclusion read as unconditional (review item R14).
+# (label, irreducible biological CV, standardizable biological CV)
+SPLITS = [
+    ('optimistic', 0.207, 0.293),
+    ('intermediate', 0.254, 0.254),
+    ('pessimistic', 0.293, 0.207),
 ]
+
+
+def packages_for(bio_irr, bio_std):
+    return [
+        ('none', total_cv(cv_bio=np.hypot(bio_irr, bio_std), cv_pre=0.08,
+                          cv_analytical=0.06, n_replicates=1), 0, 1),
+        ('sampling standardization',
+         total_cv(cv_bio=bio_irr, cv_pre=0.04, cv_analytical=0.06,
+                  n_replicates=1), 1, 1),
+        ('standardization + duplicate assay',
+         total_cv(cv_bio=bio_irr, cv_pre=0.04, cv_analytical=0.06,
+                  n_replicates=2), 1, 2),
+    ]
+
+
+PACKAGES = packages_for(0.254, 0.254) + [
+    ('hypothetical CV 0.15 (not reachable above)', 0.15, 2, 2)]
 
 DESIGNS = [(2, 3), (3, 3), (4, 3), (2, 2), (2, 4), (3, 4)]
 
@@ -149,5 +164,66 @@ print(f'  Both (standardization + one extra cycle): {gain_both*100:+.1f} pp, '
       f'against {(gain_std+gain_cyc)*100:+.1f} pp if the two gains added.')
 print('  The levers act on the same standard error, so their effects are')
 print('  sub-additive; treating them as independent double counts the benefit.')
+
+banner('R14. THE EFFICIENCY CONCLUSION UNDER ALL THREE VARIANCE SPLITS')
+print('  For each split the 2x3 design with no standardization is the baseline.')
+print('  Burden is weeks, venipunctures, and a qualitative patient-effort score')
+print('  (0 none, 1 timed fasting draws and a dietary log, 2 as 1 plus repeat')
+print('  assay logistics). Patient effort is not commensurable with weeks and is')
+print('  reported separately rather than folded into one index.\n')
+print(f'  {"split":<14}{"lever":<36}{"CV":>7}{"sens":>8}{"gain":>8}'
+      f'{"weeks":>8}{"venip":>7}{"effort":>7}')
+print('  ' + '-' * 95)
+verdict = {}
+for split_name, bio_irr, bio_std in SPLITS:
+    pkgs = packages_for(bio_irr, bio_std)
+    base_cv = pkgs[0][1]
+    base_runs = [run_protocol(cohort, cv=base_cv, measurement_seed=s,
+                              n_cycles=2, meas_per_period=3, **PRIMARY)
+                 for s in REP_SEEDS]
+    base = float(np.mean([r['sens'] for r in base_runs]))
+    rows = [
+        ('baseline: no standardization, 2x3', base_cv, 2, 3, 0),
+        ('standardization, 2x3', pkgs[1][1], 2, 3, 1),
+        ('standardization + duplicate, 2x3', pkgs[2][1], 2, 3, 2),
+        ('no standardization, 2x4', base_cv, 2, 4, 0),
+        ('no standardization, 4x3', base_cv, 4, 3, 0),
+        ('standardization, 2x4', pkgs[1][1], 2, 4, 1),
+    ]
+    for label, cvv, cyc, mpp, effort in rows:
+        runs = [run_protocol(cohort, cv=cvv, measurement_seed=s,
+                             n_cycles=cyc, meas_per_period=mpp, **PRIMARY)
+                for s in REP_SEEDS]
+        sn = float(np.mean([r['sens'] for r in runs]))
+        s2 = float(np.mean([r['stage2_rate'] for r in runs]))
+        wks = cyc * 12 + 12 * s2
+        ven = cyc * 2 * mpp + 2 * mpp * s2
+        gain = '' if label.startswith('baseline') else f'{(sn-base)*100:+.1f}'
+        print(f'  {split_name:<14}{label:<36}{cvv:>7.3f}{sn*100:>7.1f}%'
+              f'{gain:>8}{wks:>8.1f}{ven:>7.1f}{effort:>7}')
+        if label == 'standardization, 2x3':
+            verdict[(split_name, 'std')] = sn - base
+        if label == 'no standardization, 4x3':
+            verdict[(split_name, 'cycles')] = sn - base
+    print()
+
+banner('R14. IS STANDARDIZATION STILL THE BETTER LEVER IN EVERY SPLIT?')
+print(f'  {"split":<16}{"standardization":>17}{"double cycles":>16}'
+      f'{"extra weeks":>14}   which lever wins on sensitivity')
+print('  ' + '-' * 96)
+for split_name, _, _ in SPLITS:
+    g_std = verdict[(split_name, 'std')] * 100
+    g_cyc = verdict[(split_name, 'cycles')] * 100
+    win = ('standardization' if g_std > g_cyc else 'DOUBLING CYCLES')
+    print(f'  {split_name:<16}{g_std:>16.1f}{g_cyc:>16.1f}{22:>14}   {win}')
+print('''
+  The conclusion does not hold in all three splits. Standardization wins
+  comfortably when two-thirds of the biological variance is standardizable
+  (+21.9 against +11.7) and narrowly at one-half (+15.9 against +11.8), but at
+  one-third it loses on sensitivity (+10.0 against +11.7). It still costs no
+  additional weeks, so a trialist who values calendar time may prefer it even
+  there; a trialist who values sensitivity alone should not. Reporting the
+  intermediate split alone, as an earlier version did, concealed a sign change
+  rather than merely a change of magnitude.''')
 
 print('\n  Reproduce with: python3 validation/efficiency_analysis.py')

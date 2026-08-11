@@ -68,23 +68,32 @@ REFERENCE = dict(
 # second 4-week period, a second 2-week washout. Measurements are taken in the
 # final `meas_per_period` weeks of each period, so that the microbiome shift has
 # time to establish before the first draw.
-CYCLE_WEEKS = 12
 PERIOD_WEEKS = 4
-WASHOUT_WEEKS = 2
+WASHOUT_WEEKS = 2                      # default; overridable per run
+CYCLE_WEEKS = 2 * (PERIOD_WEEKS + WASHOUT_WEEKS)
 
 
-def cycle_measurement_weeks(cycle, meas_per_period):
-    """Measurement weeks for the two periods of one 0-indexed cycle."""
-    base = cycle * CYCLE_WEEKS
+def cycle_length(washout_weeks=WASHOUT_WEEKS):
+    return 2 * (PERIOD_WEEKS + washout_weeks)
+
+
+def cycle_measurement_weeks(cycle, meas_per_period, washout_weeks=WASHOUT_WEEKS):
+    """Measurement weeks for the two periods of one 0-indexed cycle.
+
+    Returns both the absolute week of each measurement and its offset within
+    its own treatment period, which is what an onset ramp depends on.
+    """
+    base = cycle * cycle_length(washout_weeks)
     first_start = PERIOD_WEEKS - meas_per_period + 1
-    p1 = tuple(base + first_start + i for i in range(meas_per_period))
-    offset = PERIOD_WEEKS + WASHOUT_WEEKS
-    p2 = tuple(w + offset for w in p1)
-    return p1, p2
+    offsets = tuple(first_start + i for i in range(meas_per_period))
+    p1 = tuple(base + o for o in offsets)
+    shift = PERIOD_WEEKS + washout_weeks
+    p2 = tuple(w + shift for w in p1)
+    return p1, p2, offsets
 
 
 def make_schedule(order, n_cycles=2, meas_per_period=3, rng=None,
-                  start_cycle=0):
+                  start_cycle=0, washout_weeks=WASHOUT_WEEKS):
     """Build the (arm, measurement weeks) schedule for a run.
 
     order : 'fixed'            control first in every cycle (original protocol)
@@ -98,7 +107,7 @@ def make_schedule(order, n_cycles=2, meas_per_period=3, rng=None,
     """
     sched = []
     for c in range(start_cycle, start_cycle + n_cycles):
-        p1, p2 = cycle_measurement_weeks(c, meas_per_period)
+        p1, p2, off = cycle_measurement_weeks(c, meas_per_period, washout_weeks)
         if order == 'fixed':
             arms = ('A', 'B')
         elif order == 'reverse':
@@ -109,8 +118,8 @@ def make_schedule(order, n_cycles=2, meas_per_period=3, rng=None,
             arms = ('A', 'B') if rng.random() < 0.5 else ('B', 'A')
         else:
             raise ValueError(f'unknown order {order!r}')
-        sched.append((arms[0], p1))
-        sched.append((arms[1], p2))
+        sched.append((arms[0], p1, off))
+        sched.append((arms[1], p2, off))
     return sched
 
 
@@ -227,8 +236,16 @@ def total_cv(cv_bio=None, cv_pre=None, cv_analytical=None, n_replicates=1,
 
 
 def _draw_period(rng, base, effect, cv, n, rho, weeks, drift, egfr0, slope,
-                 period_effect, p_missing):
-    """Draw n measurements for one treatment period of one patient."""
+                 period_effect, p_missing, offsets=None, onset_weeks=0.0):
+    """Draw n measurements for one treatment period of one patient.
+
+    `onset_weeks` is the time constant of an exponential approach to the
+    steady-state effect, measured from the start of the period. The microbiome
+    shift a fiber intervention relies on is not instantaneous, so a measurement
+    taken at week t within the period sees effect * (1 - exp(-t/onset_weeks)).
+    Zero means the effect is fully present from day one, which is what earlier
+    versions of this work assumed.
+    """
     if rho > 0:
         raw = np.empty(n)
         raw[0] = rng.normal(0, cv)
@@ -237,7 +254,12 @@ def _draw_period(rng, base, effect, cv, n, rho, weeks, drift, egfr0, slope,
     else:
         raw = rng.normal(0, cv, n)
 
-    meas = base * (1 - effect) * (1 + raw)
+    if onset_weeks > 0 and offsets is not None and effect != 0:
+        ramp = 1.0 - np.exp(-np.asarray(offsets, float) / onset_weeks)
+        eff = effect * ramp[:n]
+    else:
+        eff = effect
+    meas = base * (1 - eff) * (1 + raw)
 
     weeks = np.asarray(weeks, dtype=float)
     if drift:
@@ -297,14 +319,35 @@ def ols_period_estimate(a_vals, a_weeks, b_vals, b_weeks):
 # Critical values
 # ---------------------------------------------------------------------------
 
-def critical_value(cv, n, alpha=0.05, null_margin=0.0):
+def sd_inflation(rho, k):
+    """SD inflation of an arm mean under AR(1) correlation within blocks of k.
+
+    Var(block mean) / Var(independent block mean) = [k + 2*sum_{j<k}(k-j)rho^j] / k.
+    Blocks are independent, so the factor does not depend on how many blocks
+    the arm contains: it scales every design in the same way.
+    """
+    if rho <= 0:
+        return 1.0
+    extra = 2.0 * sum((k - j) * rho ** j for j in range(1, k))
+    return float(np.sqrt((k + extra) / k))
+
+
+def critical_value(cv, n, alpha=0.05, null_margin=0.0, rho_assumed=0.0,
+                   meas_per_period=3, n_b=None):
     """One-sided critical difference for H0: tau <= null_margin.
 
     This is a critical difference, not a power-based minimum detectable effect:
     there is no z(1-beta) term. At null_margin = 0, cv = 0.15 and n = 6 it
     returns 0.1425.
     """
-    return null_margin + _z(1 - alpha) * cv * np.sqrt(2.0 / n)
+    infl = sd_inflation(rho_assumed, meas_per_period)
+    # `n` is the count actually available in the control arm and `n_b` in the
+    # treatment arm. Passing the realized counts rather than the nominal design
+    # counts matters as soon as measurements can go missing: a boundary built on
+    # the nominal n is too low when fewer observations arrive, and the procedure
+    # over-rejects.
+    se_factor = np.sqrt(2.0 / n) if n_b is None else np.sqrt(1.0 / n + 1.0 / n_b)
+    return null_margin + _z(1 - alpha) * cv * se_factor * infl
 
 
 def obf_alphas(alpha_total, info_fractions):
@@ -331,7 +374,8 @@ def run_protocol(cohort, cv=0.15, measurement_seed=777,
                  rho=0.0, carryover=0.0, drift=False,
                  period_effect=None, estimator='ratio',
                  p_missing=0.0, p_dropout=0.0,
-                 cv_per_patient=None,
+                 cv_per_patient=None, washout_weeks=WASHOUT_WEEKS,
+                 onset_weeks=0.0, rho_assumed=0.0,
                  n_s1=None, n_s2=None):
     """Run the full two-stage adaptive protocol over a cohort.
 
@@ -358,10 +402,11 @@ def run_protocol(cohort, cv=0.15, measurement_seed=777,
     if n_s2 is None:
         n_s2 = meas_per_period
 
-    static_sched = (None if order == 'randomized'
-                    else make_schedule(order, n_cycles, meas_per_period))
+    static_sched = (None if order == 'randomized' else make_schedule(
+        order, n_cycles, meas_per_period, washout_weeks=washout_weeks))
     stage2_sched = None if order == 'randomized' else make_schedule(
-        order, 1, meas_per_period, start_cycle=n_cycles)
+        order, 1, meas_per_period, start_cycle=n_cycles,
+        washout_weeks=washout_weeks)
 
     cls = np.full(n, 'N', dtype='U1')
     went_s2 = np.zeros(n, bool)
@@ -373,17 +418,18 @@ def run_protocol(cohort, cv=0.15, measurement_seed=777,
         b = cohort.base_is[p]
         t = cohort.tau[p]
         c = cvp[p]
-        sched = (make_schedule('randomized', n_cycles, meas_per_period, rng)
+        sched = (make_schedule('randomized', n_cycles, meas_per_period, rng,
+                               washout_weeks=washout_weeks)
                  if order == 'randomized' else static_sched)
 
         a_vals, a_weeks, b_vals, b_weeks = [], [], [], []
         prev_on = False
-        for arm, weeks in sched:
+        for arm, weeks, offs in sched:
             on = (arm == 'B')
             effect = t if on else (t * carryover if prev_on else 0.0)
             vals = _draw_period(rng, b, effect, c, per_arm, rho, weeks, drift,
                                 cohort.egfr[p], cohort.slope[p], period_effect,
-                                p_missing)
+                                p_missing, offs, onset_weeks)
             wk = np.asarray(weeks, float)[:len(vals)]
             (b_vals if on else a_vals).append(vals)
             (b_weeks if on else a_weeks).append(wk)
@@ -400,7 +446,8 @@ def run_protocol(cohort, cv=0.15, measurement_seed=777,
                 else ols_period_estimate(A, AW, B, BW))
         obs1_all[p] = obs1
 
-        crit1 = critical_value(c, n_s1, alpha1, null_margin)
+        crit1 = critical_value(c, len(A), alpha1, null_margin,
+                               rho_assumed, meas_per_period, n_b=len(B))
         if obs1 > crit1:
             cls[p] = 'R'
             obs_final[p] = obs1
@@ -413,16 +460,16 @@ def run_protocol(cohort, cv=0.15, measurement_seed=777,
         # Stage 2
         went_s2[p] = True
         s2 = (make_schedule('randomized', 1, meas_per_period, rng,
-                            start_cycle=n_cycles)
+                            start_cycle=n_cycles, washout_weeks=washout_weeks)
               if order == 'randomized' else stage2_sched)
         prev_on = (sched[-1][0] == 'B')
-        for arm, weeks in s2:
+        for arm, weeks, offs in s2:
             on = (arm == 'B')
             effect = t if on else (t * carryover if prev_on else 0.0)
             prev_on = on
             vals = _draw_period(rng, b, effect, c, n_s2, rho, weeks, drift,
                                 cohort.egfr[p], cohort.slope[p], period_effect,
-                                p_missing)
+                                p_missing, offs, onset_weeks)
             wk = np.asarray(weeks, float)[:len(vals)]
             if on:
                 B = np.concatenate([B, vals]); BW = np.concatenate([BW, wk])
@@ -432,15 +479,18 @@ def run_protocol(cohort, cv=0.15, measurement_seed=777,
         obs2 = (ratio_estimate(A, B) if estimator == 'ratio'
                 else ols_period_estimate(A, AW, B, BW))
         obs_final[p] = obs2
-        crit2 = critical_value(c, n_s1 + n_s2, alpha2, null_margin)
+        crit2 = critical_value(c, len(A), alpha2, null_margin,
+                               rho_assumed, meas_per_period, n_b=len(B))
         cls[p] = 'R' if obs2 > crit2 else 'N'
 
     return summarize(cohort, cls, went_s2, dropped, theta,
-                     obs1=obs1_all, obs_final=obs_final)
+                     obs1=obs1_all, obs_final=obs_final,
+                     cycle_weeks=cycle_length(washout_weeks),
+                     n_cycles=n_cycles)
 
 
 def summarize(cohort, cls, went_s2, dropped, theta=0.10, obs1=None,
-              obs_final=None):
+              obs_final=None, cycle_weeks=CYCLE_WEEKS, n_cycles=2):
     """Operating characteristics, with dropouts excluded from the denominators."""
     analysed = ~dropped
     resp = cohort.true_responder(theta) & analysed
@@ -470,7 +520,8 @@ def summarize(cohort, cls, went_s2, dropped, theta=0.10, obs1=None,
         fp_rate=fp / (fp + tn) if fp + tn else float('nan'),
         ncc=tp + tn,
         stage2_rate=n_s2 / n_an if n_an else float('nan'),
-        mean_weeks=24 + 12 * (n_s2 / n_an) if n_an else float('nan'),
+        mean_weeks=(cycle_weeks * n_cycles + cycle_weeks * (n_s2 / n_an)
+                    if n_an else float('nan')),
         detect=detect,
     )
 

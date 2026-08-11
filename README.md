@@ -74,6 +74,9 @@ ksim/
 │   ├── requirements.txt                Pinned environment
 │   ├── reproduce_manuscript_numbers.py Cohort, Table 1, Table 2, inline numbers
 │   ├── decision_rule_analysis.py       Decision rules, CV sweep, cost-ratio sensitivity
+│   ├── sequential_error_validation.py  Held-out boundary validation, Monte Carlo error
+│   ├── correlation_boundary_analysis.py Correlation-adjusted decision boundaries
+│   ├── protocol_dependence_analysis.py Onset, washout, carryover, adherence
 │   ├── robustness_experiments.py       Reference plus 8 distributional stress conditions
 │   ├── crossover_order_analysis.py     Cycle order and period effects
 │   ├── variance_components_analysis.py Variance components, attrition, adherence
@@ -119,15 +122,15 @@ as a clearly labelled secondary analysis of a different question.
 |--------|--------------|------------------|---------------|
 | Single-run sensitivity (CV 0.15) | 83.4% | 95.1% | `validation/reproduce_manuscript_numbers.py` |
 | Single-run specificity (CV 0.15) | 99.2% | 85.7% | same |
-| Weak responder detection (τ 10–20%) | 28% | 76% | same |
-| Overall one-sided type I error | 5.1% after alpha-spending | 6.1% uncorrected | same |
-| Reachable total CV | 0.22 to 0.30 | same | `validation/variance_components_analysis.py` |
+| Overall type I error, held-out seeds | 4.98% ± 0.05% | — | `validation/sequential_error_validation.py` |
+| Type I error at within-period correlation 0.5 | 11.81% | — | `validation/correlation_boundary_analysis.py` |
+| Model-implied reachable CV | 0.22 to 0.30 | same | `validation/variance_components_analysis.py` |
 | Sensitivity at the reachable CV 0.26 | 65.2% | — | `validation/efficiency_analysis.py` |
-| Gain from sampling standardization | +15.9 points, no extra weeks | — | same |
-| Gain from doubling cycles | +11.8 points, +22 weeks | — | same |
-| Best cycle order (worst-case bias) | randomized, 2.42 pp | — | `validation/crossover_order_analysis.py` |
+| Standardization gain, three variance splits | +21.9 / +15.9 / +10.0 points | — | same |
+| Doubling cycles gain | +11.7 to +11.8 points, +22 weeks | — | same |
+| Cost of a 2-week onset time constant | −19.5 points | — | `validation/protocol_dependence_analysis.py` |
 
-Two claims made in earlier versions of this work do not survive and are
+Three claims made in earlier versions of this work do not survive and are
 withdrawn:
 
 - **There is no optimal CV.** Under the matched null, net correct
@@ -139,6 +142,11 @@ withdrawn:
   variance, contributing at most 0.004 to the total. Reaching 0.15 would
   require an irreducible biological CV of 0.112 to 0.138 against a reported
   within-person biological CV of 0.359.
+
+- **Standardization is not always the better lever.** It beats doubling the
+  cycles under the optimistic and intermediate variance splits and loses to it
+  under the pessimistic one (+10.0 against +11.7 sensitivity points). Reporting
+  the intermediate split alone concealed a sign change.
 
 One robustness scenario was also found to be vacuous: the estimator is a
 within-patient ratio, so the baseline cancels exactly and a log-normal baseline

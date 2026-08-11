@@ -25,6 +25,9 @@ HERE = Path(__file__).resolve().parent
 SCRIPTS = [
     ('reproduce_manuscript_numbers.py', 'Cohort, Table 1, Table 2, inline numbers'),
     ('decision_rule_analysis.py', 'R1/R2: decision rules, CV sweep, cost ratios'),
+    ('sequential_error_validation.py', 'R12: held-out boundary validation, MC error'),
+    ('correlation_boundary_analysis.py', 'R13: correlation-adjusted boundaries'),
+    ('protocol_dependence_analysis.py', 'R15: onset, washout, carryover, adherence'),
     ('robustness_experiments.py', 'Table 3: distributional stress tests'),
     ('crossover_order_analysis.py', 'R3: cycle order and period effects'),
     ('variance_components_analysis.py', 'R4: variance components, attrition'),
