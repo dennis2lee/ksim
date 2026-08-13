@@ -104,20 +104,35 @@ ksim/
 
 ## Quick Start
 
-**Requirements**: Python 3.8+, NumPy. Matplotlib needed only for figure generation.
+**Requirements**: Python 3.8 or later and NumPy. Matplotlib is needed only for
+figure generation. Normal-distribution quantiles come from the standard library,
+so SciPy is not required.
 
 ```bash
-pip install numpy matplotlib
+git clone https://github.com/dennis2lee/ksim.git && cd ksim
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r validation/requirements.txt
 
 # Reproduce every number in the manuscript and the supplement, in one command.
 # Any Python warning is promoted to an error, so a clean run means a clean run.
-# Writes a full transcript to validation/reproduce_all.log (about 4 minutes).
-python validation/reproduce_all.py
+# Writes a full transcript to validation/reproduce_all.log.
+python3 validation/reproduce_all.py
 
 # Or run a single analysis
-python validation/decision_rule_analysis.py
-python validation/variance_components_analysis.py
+python3 validation/decision_rule_analysis.py
+python3 validation/variance_components_analysis.py
 ```
+
+`validation/requirements.txt` pins the exact environment used for the submitted
+results (Python 3.14.6, NumPy 2.4.6). The committed
+`validation/reproduce_all.log` was produced by the command above, run from a
+fresh clone of the tagged release in a new virtual environment, so it can be
+diffed against your own run rather than taken on trust.
+
+## Citing this code
+
+The version accompanying the submitted manuscript is tagged in this repository.
+Cite the tag rather than the branch: `main` moves, a tag does not.
 
 ## Key Results
 

@@ -1,0 +1,954 @@
+##############################################################################
+# How this transcript was produced
+#
+#   git clone https://github.com/dennis2lee/ksim.git && cd ksim
+#   python3 -m venv .venv && . .venv/bin/activate
+#   pip install -r validation/requirements.txt
+#   python3 validation/reproduce_all.py
+#
+# Run from a fresh clone in a new virtual environment: Python 3.14.6,
+# NumPy 2.4.6. All 13 analysis scripts completed with no warnings, warnings
+# having been promoted to errors.
+#
+# This file and the documentation committed alongside it were added after the
+# run; no analysis script changed, so the transcript describes the code as
+# tagged. Diff your own run against this file rather than taking it on trust.
+##############################################################################
+
+
+##############################################################################
+# reproduce_manuscript_numbers.py
+##############################################################################
+
+==========================================================================
+COHORT CHARACTERISTICS
+==========================================================================
+  baseline IS: realized mean 5.417 ug/mL, SD 3.574 ug/mL
+  (the standardization imposes 5.4 / 3.6 before the 0.5 floor; the
+   floor moves 32 of 1000 values and shifts the moments slightly)
+  non_responder      265
+  weak               127
+  moderate           271
+  strong             337
+  total             1000
+  mean tau among true responders: 35%
+
+==========================================================================
+TABLE 1. CRITICAL VALUE BY DESIGN, CV AND NULL
+==========================================================================
+  design      CV  n/arm  weeks   H0 tau<=0   H0 tau<=0.10
+  ------------------------------------------------------------
+  2x3       0.25      6     24       23.7%          33.7%
+  2x3       0.15      6     24       14.2%          24.2%
+  3x3       0.25      9     36       19.4%          29.4%
+  4x3       0.25     12     48       16.8%          26.8%
+  3x3       0.15      9     36       11.6%          21.6%
+
+==========================================================================
+TABLE 2. SINGLE-RUN CLASSIFICATION
+==========================================================================
+
+  zero-null (previous manuscript rule)
+    true responders 735, true non-responders 265
+    TP=699  FN=36  FP=38  TN=227
+    sensitivity 95.1%, specificity 85.7%
+    Stage 2 rate 23%, mean duration 26.7 weeks
+    subgroup detection: weak 76%, moderate 98%, strong 100%
+
+  primary rule
+    true responders 735, true non-responders 265
+    TP=613  FN=122  FP=2  TN=263
+    sensitivity 83.4%, specificity 99.2%
+    Stage 2 rate 26%, mean duration 27.1 weeks
+    subgroup detection: weak 28%, moderate 89%, strong 100%
+
+==========================================================================
+OVERALL TYPE I ERROR AT THE NULL BOUNDARY
+==========================================================================
+  Measured on a cohort with every tau set to the null margin, so this
+  is the actual type I error, not the false-positive rate among true
+  non-responders (which mixes in the definition mismatch).
+
+  zero-null, uncorrected               6.1%
+  matched-null, uncorrected            3.9%
+  matched-null, alpha-spending         5.1%
+
+==========================================================================
+BASELINE DISTRIBUTION IS IRRELEVANT BY CONSTRUCTION
+==========================================================================
+  Gaussian baseline mean 5.42, log-normal baseline mean 5.93
+  classifications identical: True
+  largest difference in the estimate: 5.0e-16
+  The estimator is (mean_A - mean_B)/mean_A, in which the patient's
+  own baseline cancels exactly. No baseline distribution can change a
+  classification, so this is an analytic invariance rather than an
+  empirical robustness result.
+
+==========================================================================
+INLINE NUMBERS
+==========================================================================
+  mean duration under the primary rule: 27.1 weeks
+  critical value, H0 tau<=0.10, CV 0.15, n=6: 24.2%
+  critical value, H0 tau<=0.10, CV 0.25, n=6: 33.7%
+  calibrated alphas: 0.0335 / 0.0762
+
+  Reproduce with: python3 validation/reproduce_manuscript_numbers.py
+
+##############################################################################
+# decision_rule_analysis.py
+##############################################################################
+
+==============================================================================
+COHORT (shared by every analysis below)
+==============================================================================
+  baseline IS realized mean 5.417 ug/mL, SD 3.574 ug/mL
+  non_responder=265  weak=127  moderate=271  strong=337
+
+==============================================================================
+R2. ALPHA-SPENDING CALIBRATION (overall one-sided type I error = 5%)
+==============================================================================
+  O'Brien-Fleming nominal per-look alphas at information fractions 0.667, 1.000: 0.0220, 0.0500
+
+  zero-null: calibrated alpha1=0.0241, alpha2=0.0547 (scale 1.095)
+    achieved overall type I error at tau = 0.00: 5.0%
+    Stage 1 critical value 17.1%, Stage 2 11.3%
+
+  matched-null: calibrated alpha1=0.0337, alpha2=0.0766 (scale 1.532)
+    achieved overall type I error at tau = 0.10: 5.0%
+    Stage 1 critical value 25.8%, Stage 2 20.1%
+  zero-null: UNCORRECTED overall type I error at tau = 0.00: 6.1%
+  matched-null: UNCORRECTED overall type I error at tau = 0.10: 3.8%
+
+==============================================================================
+R1/R2. THREE DECISION RULES AT CV = 0.15 (mean of 50 replications, seeds 700-749)
+==============================================================================
+  rule                                           sens   spec     FP   weak    S2     wk
+  ----------------------------------------------------------------------------
+  zero-null, alpha 0.05 per look (original)     95.2%  85.8%  14.2%    75%   21%   26.5
+  zero-null, alpha-spending                     94.9%  86.8%  13.2%    73%   25%   27.0
+  matched-null, alpha 0.05 per look             79.8%  99.6%   0.4%    20%   22%   26.6
+  matched-null, alpha-spending (primary)        81.9%  99.3%   0.7%    24%   24%   26.9
+
+==============================================================================
+R1. CV SWEEP UNDER EACH NULL (mean of 50 replications)
+==============================================================================
+      CV |           zero-null            |    matched-null + spending    
+         |    sens   spec     NCC    dNCC |    sens   spec     NCC    dNCC
+  ------------------------------------------------------------------------
+    0.10 |   99.0%  77.8%     934         |   89.1%  99.6%     919        
+    0.12 |   97.9%  82.2%     937      -3 |   86.2%  99.5%     897     +22
+    0.15 |   95.2%  85.8%     927     +10 |   81.9%  99.3%     865     +32
+    0.20 |   89.4%  89.1%     893     +34 |   74.4%  99.1%     810     +56
+    0.25 |   82.6%  91.3%     849     +44 |   67.2%  98.7%     756     +54
+    0.30 |   75.0%  92.4%     796     +53 |   59.5%  98.6%     698     +57
+    0.36 |   65.7%  93.4%     730     +66 |   51.0%  98.5%     636     +62
+
+  dNCC is the change in net correct classifications relative to the
+  next-higher CV, i.e. the gain from tightening measurement by one step.
+
+==============================================================================
+R1. FULL OPERATING CHARACTERISTICS UNDER THE PRIMARY RULE (Table S9)
+==============================================================================
+      CV    sens    spec   FP rate   weak    S2   weeks
+  -----------------------------------------------------
+    0.10   89.1%   99.6%      0.4%    42%   15%    25.8
+    0.12   86.2%   99.5%      0.5%    33%   19%    26.3
+    0.15   81.9%   99.3%      0.7%    24%   24%    26.9
+    0.20   74.4%   99.1%      0.9%    17%   34%    28.0
+    0.25   67.2%   98.7%      1.3%    12%   42%    29.0
+    0.30   59.5%   98.6%      1.4%    10%   49%    29.9
+    0.36   51.0%   98.5%      1.5%     8%   56%    30.7
+
+==============================================================================
+R1. SENSITIVITY TO THE FALSE-POSITIVE / FALSE-NEGATIVE COST RATIO
+==============================================================================
+  Expected loss per patient; the CV minimizing loss is starred.
+    FP:FN cost |     0.10    0.12    0.15    0.20    0.25    0.30    0.36   best
+  -- zero-null
+        0.25:1 |    0.022   0.028   0.044   0.085   0.133   0.189   0.257   0.10
+        0.50:1 |    0.037   0.039   0.054   0.092   0.139   0.194   0.261   0.10
+        1.00:1 |    0.066   0.063   0.073   0.107   0.151   0.204   0.270   0.12
+        2.00:1 |    0.125   0.110   0.110   0.135   0.174   0.224   0.287   0.12
+        4.00:1 |    0.243   0.205   0.186   0.193   0.220   0.264   0.322   0.15
+  -- matched-null
+        0.25:1 |    0.080   0.102   0.133   0.189   0.242   0.299   0.361   0.10
+        0.50:1 |    0.081   0.102   0.134   0.189   0.243   0.300   0.362   0.10
+        1.00:1 |    0.081   0.103   0.135   0.191   0.244   0.301   0.364   0.10
+        2.00:1 |    0.082   0.104   0.137   0.193   0.248   0.305   0.368   0.10
+        4.00:1 |    0.085   0.107   0.141   0.198   0.254   0.313   0.376   0.10
+
+==============================================================================
+DONE
+==============================================================================
+  Reproduce with: python3 validation/decision_rule_analysis.py
+
+##############################################################################
+# sequential_error_validation.py
+##############################################################################
+
+==================================================================================
+R12. CALIBRATION AND VALIDATION USE DISJOINT SEED BLOCKS
+==================================================================================
+  calibration seeds 900-919 (20 replications)
+  validation  seeds 3000-3199 (200 replications)
+  intersection: 0
+
+  O'Brien-Fleming nominal levels: alpha1 0.0220, alpha2 0.0500
+  calibrated:                     alpha1 0.0337, alpha2 0.0766  (common scale 1.532)
+  achieved on the CALIBRATION set: 5.01%  (in-sample, reported for comparison only)
+
+==================================================================================
+R12. OVERALL TYPE I ERROR ON THE HELD-OUT VALIDATION SEEDS
+==================================================================================
+  Null cohort: every tau set to the margin, so this is the error rate at
+  the boundary of H0. Intervals are 1.96 x Monte Carlo standard error.
+
+  rule                                            error    MC SE   95% interval
+  --------------------------------------------------------------------------------
+  zero-null, alpha 0.05 per look                  5.91%    0.05%   [5.82%, 6.01%]
+  zero-null, calibrated                           4.98%    0.04%   [4.89%, 5.07%]
+  matched-null, alpha 0.05 per look               3.86%    0.04%   [3.78%, 3.94%]
+  matched-null, calibrated (primary)              4.98%    0.05%   [4.89%, 5.07%]
+
+  The primary rule's interval is the one to read against the 5% target.
+
+==================================================================================
+R12. TYPE I ERROR UNDER DEPARTURES FROM THE REFERENCE MODEL
+==================================================================================
+  Same calibrated boundaries, held-out seeds, one departure at a time.
+  The boundary uses the realized number of measurements in each arm. An
+  earlier version used the nominal design count, which made the boundary
+  too low whenever measurements went missing and pushed the error rate to
+  6.16% at 10% missing and 7.57% at 20% missing.
+
+  departure                                       error    MC SE   95% interval
+  --------------------------------------------------------------------------------
+  reference (independent errors)                  4.98%    0.05%   [4.89%, 5.07%]
+  within-period correlation, rho = 0.3            9.09%    0.07%   [8.96%, 9.23%]  <-- exceeds 5%
+  within-period correlation, rho = 0.5           11.88%    0.07%   [11.75%, 12.02%]  <-- exceeds 5%
+  10% of measurements missing                     4.91%    0.05%   [4.82%, 5.00%]
+  20% of measurements missing                     4.88%    0.05%   [4.78%, 4.98%]
+  20% dropout                                     5.06%    0.06%   [4.94%, 5.17%]
+  onset ramp, time constant 2 weeks               2.17%    0.03%   [2.11%, 2.24%]
+  washout 4 weeks                                 4.98%    0.05%   [4.89%, 5.07%]
+
+==================================================================================
+R18. THE BOUNDARY IS CALIBRATED AT ONE CV AND APPLIED AT ALL OF THEM
+==================================================================================
+  The calibration above was run at CV 0.15. The resulting alpha1 and
+  alpha2 are then used unchanged at every CV the paper reports, so the
+  5% claim is a claim about CV 0.15 and needs checking elsewhere. The
+  critical value itself scales with CV, but the ratio statistic is not
+  exactly normal and its departure from normality grows with CV, so the
+  achieved error does not stay fixed.
+
+  Audit seeds 4000-4099, disjoint from both the calibration and the validation blocks.
+
+    total CV    error    MC SE   95% interval
+  --------------------------------------------------------
+        0.10    5.35%    0.06%   [5.24%, 5.46%]  <-- above 5%
+        0.15    4.95%    0.06%   [4.84%, 5.06%]
+        0.22    4.48%    0.06%   [4.37%, 4.59%]  reachable range
+        0.26    4.25%    0.06%   [4.14%, 4.35%]  reachable range
+        0.30    4.00%    0.06%   [3.89%, 4.11%]  reachable range
+        0.36    3.63%    0.05%   [3.53%, 3.74%]
+
+  The boundary is conservative over the model-implied reachable range 0.22 to
+  0.30 and mildly liberal below the calibration point: at CV 0.10 the interval
+  lies above 5%. We report the excess rather than hide it. A single fixed
+  boundary is kept for the main analysis because a candidate trial fixes its
+  standardization package, and therefore its assumed CV, before it starts; the
+  consequence is that such a trial must calibrate its own boundary by simulation
+  at that prespecified CV rather than reuse the numbers here.
+
+==================================================================================
+R12. OPERATING CHARACTERISTICS WITH MONTE CARLO UNCERTAINTY
+==================================================================================
+  Reference cohort, held-out seeds, primary rule.
+
+  sensitivity           82.00%  MC SE 0.06%  95% interval [81.88%, 82.13%]
+  specificity           99.32%  MC SE 0.04%  95% interval [99.25%, 99.39%]
+  Stage 2 entry         24.57%  MC SE 0.07%  95% interval [24.43%, 24.71%]
+
+==================================================================================
+R12. WHY THE CALIBRATED ALPHA2 EXCEEDS 0.05
+==================================================================================
+  Stage 1 nominal 0.0220 -> calibrated 0.0337
+  Stage 2 nominal 0.0500 -> calibrated 0.0766
+
+  Stage 1 critical value: 25.8%
+  Stage 2 critical value: 20.1%
+
+  alpha2 is not a per-test level applied to an unselected patient. Only the
+  patients whose Stage 1 estimate fell between the null margin and the Stage 1
+  critical value reach the second look; those above were already called
+  responders and those below were already called non-responders. alpha2 is the
+  conditional level applied to that selected middle group, and the quantity
+  constrained to 5% is the error of the whole procedure, not either look. A
+  conditional level above 0.05 is therefore expected rather than anomalous, and
+  the number to compare against 5% is the validated overall rate above.
+
+  Reproduce with: python3 validation/sequential_error_validation.py
+
+##############################################################################
+# correlation_boundary_analysis.py
+##############################################################################
+
+======================================================================================
+R13. THE VARIANCE INFLATION THE INDEPENDENT BOUNDARY IGNORES
+======================================================================================
+  AR(1) within blocks of k = 3; blocks independent, so the factor does
+  not depend on how many blocks an arm contains.
+
+     rho   SD inflation   crit, independent   crit, adjusted
+  ------------------------------------------------------------
+     0.0         1.0000               24.2%            24.2%
+     0.2         1.1372               24.2%            26.2%
+     0.3         1.2083               24.2%            27.2%
+     0.4         1.2806               24.2%            28.2%
+     0.5         1.3540               24.2%            29.3%
+
+======================================================================================
+R13. TWO DIFFERENT QUANTITIES, STATED SEPARATELY
+======================================================================================
+  Independent boundary throughout; only the true rho changes.
+
+   true rho     boundary type I error   classification specificity
+               (tau = margin exactly)       (all tau below margin)
+  ------------------------------------------------------------------
+        0.0               4.92% ± 0.07                       99.3%
+        0.2               7.67% ± 0.09                       98.6%
+        0.3               9.04% ± 0.09                       97.9%
+        0.4              10.49% ± 0.10                       97.3%
+        0.5              11.81% ± 0.10                       96.7%
+
+  Specificity moves by a few points while the error rate at the boundary
+  more than doubles. Reporting only the first hides the failure.
+
+======================================================================================
+R13. THREE BOUNDARY STRATEGIES
+======================================================================================
+  matched      : the boundary uses the true rho (an upper bound on what
+                 a well-informed trial could do)
+  independent  : the boundary assumes rho = 0 (the previous version)
+  conservative : the boundary always assumes rho = 0.5,
+                 which is what a trial without a correlation estimate
+                 can prespecify
+
+   true rho |      independent       |        matched         |      conservative     
+            |     error         sens |     error         sens |     error         sens
+  ------------------------------------------------------------------------------------
+        0.0 |     4.92%        82.0% |     4.92%        82.0% |     1.06%        74.4%
+        0.2 |     7.67%        81.9% |     4.91%        79.0% |     2.20%        74.4%
+        0.3 |     9.04%        81.8% |     4.84%        77.5% |     2.97%        74.3%
+        0.4 |    10.49%        81.7% |     4.76%        75.8% |     3.79%        74.4%
+        0.5 |    11.81%        81.4% |     4.69%        74.2% |     4.69%        74.2%
+
+======================================================================================
+SUMMARY
+======================================================================================
+  Worst-case type I error across rho 0 to 0.5:
+    independent boundary  11.81%
+    matched boundary      4.92%
+    conservative boundary 4.69%
+
+  Cost of the conservative boundary when errors are in fact
+  independent: sensitivity 82.0% -> 74.4% (-7.6 points).
+
+  A trial that cannot estimate the within-period correlation in advance should
+  prespecify the conservative boundary and accept that loss, or plan an interim
+  recalibration once enough within-period pairs have been observed to estimate
+  rho. Reporting a 5% overall type I error without naming the independent-error
+  reference model overstates what the procedure guarantees.
+
+  Reproduce with: python3 validation/correlation_boundary_analysis.py
+
+##############################################################################
+# protocol_dependence_analysis.py
+##############################################################################
+
+========================================================================================
+R15. ONSET RAMP: THE ASSUMPTION THAT THE EFFECT IS PRESENT AT DAY ONE
+========================================================================================
+  CV = 0.264, primary rule, mean of 30 replications.
+  Measurements are taken in weeks 2, 3 and 4 of each 4-week period.
+
+  onset time constant             sens    spec    weak
+  ----------------------------------------------------
+  none (effect immediate)        65.1%   98.7%     12%
+  0.5 weeks                      64.5%   98.5%     12%
+  1 week                         60.2%   98.7%      9%
+  2 weeks                        45.6%   99.0%      7%
+  3 weeks                        31.5%   99.2%      5%
+
+  This is the single most consequential assumption in the protocol. A 2-week
+  onset constant costs 19.5 sensitivity points, more than three times what
+  moving from the intermediate to the pessimistic variance split costs, and a
+  3-week constant costs 33.6. The design mitigates onset only by measuring late
+  in the period, which is why the draws sit in weeks 2 to 4; with a 4-week
+  period there is no room to wait longer. A trial that cannot bound the onset
+  rate cannot bound its own sensitivity.
+
+========================================================================================
+R15. WASHOUT LENGTH AND CARRYOVER
+========================================================================================
+  Washout changes the schedule; with no time trend the ratio estimator is
+  unaffected by timing, so washout acts on performance only through
+  carryover and through total duration.
+
+    washout  carryover    sens    spec   weeks
+  ----------------------------------------------
+        2wk        0%   65.1%   98.7%    29.3
+        2wk       10%   62.1%   98.9%    29.4
+        2wk       20%   58.5%   98.8%    29.6
+        2wk       40%   50.5%   99.0%    29.9
+        3wk        0%   65.1%   98.7%    34.2
+        3wk       10%   62.1%   98.9%    34.3
+        3wk       20%   58.5%   98.8%    34.5
+        3wk       40%   50.5%   99.0%    34.9
+        4wk        0%   65.1%   98.7%    39.1
+        4wk       10%   62.1%   98.9%    39.2
+        4wk       20%   58.5%   98.8%    39.5
+        4wk       40%   50.5%   99.0%    39.9
+
+  Carryover costs sensitivity at every washout length; a longer washout
+  buys calendar time, not performance, unless it also reduces carryover.
+  The trial that can measure the reversion rate is the one that can
+  choose the washout; we cannot choose it from these simulations.
+
+========================================================================================
+R15. PARTIAL ADHERENCE
+========================================================================================
+  scenario                                    sens    spec
+  --------------------------------------------------------
+  full adherence                             65.1%   98.7%
+  20% of patients at 75% adherence           61.3%   98.7%
+  20% of patients at 50% adherence           58.1%   98.4%
+  30% of patients at 50% adherence           53.6%   98.5%
+  30% of patients at 25% adherence           58.3%   98.7%
+
+  Adherence enters as a reduction in the delivered effect, so a patient
+  who does not take the intervention is a simulated non-responder under
+  the estimand. Whether a trial should treat them that way or as a
+  protocol deviation is a design decision, not a simulation result.
+
+========================================================================================
+R15. WORST PLAUSIBLE COMBINATION
+========================================================================================
+  reference at CV 0.264                       65.1% sens    98.7% spec   12% weak
+  onset 2 weeks + 20% carryover                38.0% sens    99.0% spec    5% weak
+
+  Sensitivity falls 27.0 points and weak-responder detection
+  falls from 12% to 5%. The operational parameters are not a
+  footnote to the design: at the reachable CV they move performance more
+  than the measurement precision this paper is about. Any recommendation
+  about period length, washout or onset that these simulations do not
+  support has been removed from the manuscript rather than softened.
+
+  Reproduce with: python3 validation/protocol_dependence_analysis.py
+
+##############################################################################
+# robustness_experiments.py
+##############################################################################
+
+======================================================================================
+TABLE 3. ROBUSTNESS TO DISTRIBUTIONAL AND DESIGN VIOLATIONS
+======================================================================================
+  Reference cohort seed 777, measurement seed 777, CV = 0.15.
+  Primary rule: H0 tau <= 0.10, alpha1 = 0.0337, alpha2 = 0.0766, randomized order.
+
+      scenario                        |  zero-null (original) |      primary rule     
+                                      |    sens   spec     S2|    sens   spec     S2
+  ------------------------------------------------------------------------------------
+  0   reference                       |   95.1%  85.7%    23%|   83.4%  99.2%    26%
+  A   log-normal baseline IS          |   95.1%  85.7%    23%|   83.4%  99.2%    26%
+  B   bimodal effect distribution     |   99.9%  90.9%    10%|   96.6%  99.4%    10%
+  C   heteroscedastic CV              |   92.2%  83.8%    24%|   79.7% 100.0%    25%
+  D   serial correlation, rho = 0.3   |   94.6%  82.3%    19%|   82.7%  94.7%    24%
+  D'  serial correlation, rho = 0.5   |   94.8%  75.5%    17%|   81.9%  95.5%    22%
+  E   carryover 20%                   |   95.0%  90.9%    21%|   77.4%  99.6%    27%
+  F   combined worst case             |   99.0%  85.2%    11%|   94.4%  99.4%    18%
+  G   eGFR-decline drift              |   93.5%  87.9%    23%|   82.9%  99.2%    24%
+
+======================================================================================
+WEAK-RESPONDER DETECTION BY SCENARIO
+======================================================================================
+      scenario                           zero-null     primary
+  --------------------------------------------------------------
+  0   reference                                76%         28%
+  A   log-normal baseline IS                   76%         28%
+  B   bimodal effect distribution              89%         22%
+  C   heteroscedastic CV                       70%         31%
+  D   serial correlation, rho = 0.3            75%         25%
+  D'  serial correlation, rho = 0.5            72%         28%
+  E   carryover 20%                            74%         20%
+  F   combined worst case                      78%         44%
+  G   eGFR-decline drift                       66%         29%
+
+======================================================================================
+SUMMARY
+======================================================================================
+  zero-null: sensitivity 92.2-99.9%, specificity 75.5-90.9%
+  primary:   sensitivity 77.4-96.6%, specificity 94.7-100.0%
+
+  Reference plus eight stress conditions (nine rows in total).
+  Reproduce with: python3 validation/robustness_experiments.py
+
+##############################################################################
+# crossover_order_analysis.py
+##############################################################################
+
+========================================================================================
+R3. EFFECT-ESTIMATE BIAS BY CYCLE ORDER AND TIME TREND (arm-mean ratio estimator)
+========================================================================================
+  Bias = mean(estimated reduction - true tau), percentage points.
+  scenario                                fixed        reversecounterbalanced     randomized
+  --------------------------------------------------------------------------------------
+  no time trend                          -0.34         -0.32         -0.34         -0.38
+  eGFR decline (model drift)             -1.38         +0.71         -0.40         -0.31
+  linear +0.5%/week                      -2.45         +1.72         -0.52         -0.34
+  linear -0.5%/week                      +1.98         -2.74         -0.06         -0.42
+  seasonal, 10% amplitude                -0.35         -0.32         -2.97         -0.43
+  carryover 20%                          -2.14         -3.80         -1.85         -2.42
+
+========================================================================================
+R3. THE SAME, WITH AN EXPLICIT PER-PATIENT LINEAR WEEK TERM
+========================================================================================
+  Estimator regresses log(IS) on treatment and week within each patient.
+  scenario                                fixed        reversecounterbalanced     randomized
+  --------------------------------------------------------------------------------------
+  no time trend                          -0.44         -0.44         -0.40         -0.37
+  eGFR decline (model drift)             -0.44         -0.44         -0.38         -0.37
+  linear +0.5%/week                      -0.44         -0.44         -0.41         -0.39
+  linear -0.5%/week                      -0.44         -0.44         -0.39         -0.39
+  seasonal, 10% amplitude                -0.58         -0.31         -3.12         -0.35
+  carryover 20%                          -3.03         -3.94         -1.88         -2.73
+
+========================================================================================
+R3. OPERATING CHARACTERISTICS UNDER THE PRIMARY RULE (matched null, alpha-spending)
+========================================================================================
+  scenario                      order                sens    spec  bias(pp)
+  -------------------------------------------------------------------------
+  no time trend                 fixed               81.9%   99.2%     -0.34
+  no time trend                 reverse             82.2%   99.2%     -0.32
+  no time trend                 counterbalanced     81.9%   99.3%     -0.34
+  no time trend                 randomized          81.8%   99.3%     -0.38
+  eGFR decline (model drift)    fixed               79.5%   99.6%     -1.38
+  eGFR decline (model drift)    reverse             84.4%   98.7%     +0.71
+  eGFR decline (model drift)    counterbalanced     81.3%   99.4%     -0.40
+  eGFR decline (model drift)    randomized          81.9%   99.2%     -0.31
+  linear +0.5%/week             fixed               77.1%   99.8%     -2.45
+  linear +0.5%/week             reverse             86.7%   98.2%     +1.72
+  linear +0.5%/week             counterbalanced     80.7%   99.5%     -0.52
+  linear +0.5%/week             randomized          82.0%   99.0%     -0.34
+  linear -0.5%/week             fixed               87.2%   97.5%     +1.98
+  linear -0.5%/week             reverse             76.5%   99.8%     -2.74
+  linear -0.5%/week             counterbalanced     83.9%   99.1%     -0.06
+  linear -0.5%/week             randomized          81.7%   99.4%     -0.42
+  seasonal, 10% amplitude       fixed               84.1%   98.8%     -0.35
+  seasonal, 10% amplitude       reverse             79.4%   99.5%     -0.32
+  seasonal, 10% amplitude       counterbalanced     80.1%   99.6%     -2.97
+  seasonal, 10% amplitude       randomized          81.7%   99.0%     -0.43
+  carryover 20%                 fixed               76.9%   99.6%     -2.14
+  carryover 20%                 reverse             74.3%   99.5%     -3.80
+  carryover 20%                 counterbalanced     79.6%   99.3%     -1.85
+  carryover 20%                 randomized          77.3%   99.5%     -2.42
+
+========================================================================================
+SUMMARY
+========================================================================================
+  Worst-case absolute bias across the six scenarios, ratio estimator:
+    fixed              2.45 pp
+    reverse            3.80 pp
+    counterbalanced    2.97 pp
+    randomized         2.42 pp
+  Worst-case absolute bias, with an explicit week term:
+    fixed              3.03 pp
+    reverse            3.94 pp
+    counterbalanced    3.12 pp
+    randomized         2.73 pp
+
+  Reproduce with: python3 validation/crossover_order_analysis.py
+
+##############################################################################
+# variance_components_analysis.py
+##############################################################################
+
+====================================================================================
+R4. WHAT TOTAL CV IS REACHABLE, BY VARIANCE COMPONENT
+====================================================================================
+  cv_bio is split into a part that sampling standardization can remove
+  (diet, time of day, fasting state) and an irreducible day-to-day part.
+  Duplicate assay divides only the analytical variance.
+
+  scenario                                                none    std.  std.+dup
+  ------------------------------------------------------------------------------
+  optimistic: 2/3 of biological CV is standardizable     0.372   0.219     0.215
+  intermediate: 1/2 standardizable                       0.373   0.264     0.261
+  pessimistic: 1/3 standardizable                        0.372   0.302     0.299
+
+  The duplicate assay column differs from the column to its left by at
+  most 0.0041. Re-assaying the same specimen cannot deliver the
+  0.25 -> 0.15 reduction the manuscript previously attributed to a
+  package that included it. Reaching 0.15 requires the irreducible
+  biological component alone to be below 0.15.
+
+====================================================================================
+R4. WHAT IRREDUCIBLE BIOLOGICAL CV WOULD 0.15 TOTAL REQUIRE?
+====================================================================================
+  cv_pre=0.04, cv_analytical=0.06, replicates=2: cv_bio must be <= 0.138
+  cv_pre=0.08, cv_analytical=0.06, replicates=2: cv_bio must be <= 0.120
+  cv_pre=0.08, cv_analytical=0.06, replicates=1: cv_bio must be <= 0.112
+  Against a reported within-person biological CV of 0.359, that is a
+  reduction of more than half, for which there is no CKD evidence.
+
+====================================================================================
+R4. OPERATING CHARACTERISTICS ACROSS THE PLAUSIBLE CV RANGE
+====================================================================================
+  Primary rule (matched null, alpha-spending). CV 0.15 is shown as one
+  hypothetical scenario among several, not as a representative value.
+
+      CVbasis                                       sens    spec    weak    S2
+  ----------------------------------------------------------------------------
+   0.15  hypothetical best case (see above)       82.0%   99.3%     25%   24%
+   0.20  strong standardization                   74.6%   99.2%     17%   34%
+   0.25  reference simulation assumption          67.5%   98.8%     12%   42%
+   0.30  modest standardization                   59.5%   98.6%     10%   50%
+   0.36  Pretorius within-person biological CV    51.3%   98.5%      9%   56%
+
+====================================================================================
+R4. PROTOCOL ATTRITION AND INTERCURRENT EVENTS
+====================================================================================
+  Primary rule, randomized order, CV = 0.25 (reference assumption).
+
+  scenario                                      analysed    sens    spec
+  ----------------------------------------------------------------------
+  complete data                                     1000   67.5%   98.8%
+  10% of measurements missing                       1000   64.8%   98.8%
+  20% of measurements missing                       1000   61.8%   98.8%
+  10% dropout                                        901   67.5%   98.9%
+  20% dropout                                        802   67.0%   98.9%
+  20% missing + 20% dropout                          801   62.0%   98.8%
+
+  Partial adherence is modelled as an attenuated treatment effect and
+  an intercurrent event as an inflated CV in a subset of patients.
+
+  scenario                                        sens    spec
+  ------------------------------------------------------------
+  20% of patients at 50% adherence               59.7%   98.6%
+  30% of patients at 50% adherence               56.0%   98.6%
+  20% of patients at 0% adherence                66.9%   99.1%
+  10% with intercurrent event (CV x2)            63.6%   98.7%
+  20% with intercurrent event (CV x2)            59.8%   98.6%
+
+  Reproduce with: python3 validation/variance_components_analysis.py
+
+##############################################################################
+# efficiency_analysis.py
+##############################################################################
+
+================================================================================================
+R5. DECISION THRESHOLD BY DESIGN AND ACHIEVABLE CV
+================================================================================================
+  Critical value for H0: tau <= 0.10 at one-sided alpha 0.05.
+  Weeks and venipunctures are Stage 1 only; Stage 2 adds 12 weeks and
+  one more cycle of draws for the patients who enter it.
+
+  package                                       CV   design  n/arm    crit  weeks  venip  assays
+  ----------------------------------------------------------------------------------------------
+  none                                       0.373      2x3      6   45.4%     24     12      12
+  none                                       0.373      3x3      9   38.9%     36     18      18
+  none                                       0.373      4x3     12   35.0%     48     24      24
+  none                                       0.373      2x2      4   53.4%     24      8       8
+  none                                       0.373      2x4      8   40.7%     24     16      16
+  none                                       0.373      3x4     12   35.0%     36     24      24
+  sampling standardization                   0.264      2x3      6   35.1%     24     12      12
+  sampling standardization                   0.264      3x3      9   30.5%     36     18      18
+  sampling standardization                   0.264      4x3     12   27.7%     48     24      24
+  sampling standardization                   0.264      2x2      4   40.7%     24      8       8
+  sampling standardization                   0.264      2x4      8   31.7%     24     16      16
+  sampling standardization                   0.264      3x4     12   27.7%     36     24      24
+  standardization + duplicate assay          0.261      2x3      6   34.7%     24     12      24
+  standardization + duplicate assay          0.261      3x3      9   30.2%     36     18      36
+  standardization + duplicate assay          0.261      4x3     12   27.5%     48     24      48
+  standardization + duplicate assay          0.261      2x2      4   40.3%     24      8      16
+  standardization + duplicate assay          0.261      2x4      8   31.4%     24     16      32
+  standardization + duplicate assay          0.261      3x4     12   27.5%     36     24      48
+  hypothetical CV 0.15 (not reachable above) 0.150      2x3      6   24.2%     24     12      24
+  hypothetical CV 0.15 (not reachable above) 0.150      3x3      9   21.6%     36     18      36
+  hypothetical CV 0.15 (not reachable above) 0.150      4x3     12   20.1%     48     24      48
+  hypothetical CV 0.15 (not reachable above) 0.150      2x2      4   27.4%     24      8      16
+  hypothetical CV 0.15 (not reachable above) 0.150      2x4      8   22.3%     24     16      32
+  hypothetical CV 0.15 (not reachable above) 0.150      3x4     12   20.1%     36     24      48
+
+================================================================================================
+R5. OPERATING CHARACTERISTICS ON THE SAME GRID (primary rule)
+================================================================================================
+  package                                       CV   design    sens    spec   weak  weeks  venip
+  ----------------------------------------------------------------------------------------------
+  none                                       0.373      2x3   49.3%   98.8%     8%   30.8   15.4
+  none                                       0.373      3x3   56.1%   98.6%     9%   42.0   21.0
+  none                                       0.373      4x3   61.1%   98.8%    10%   53.3   26.6
+  none                                       0.373      2x2   38.4%   98.3%     5%   31.5   10.5
+  none                                       0.373      2x4   55.8%   98.6%     8%   30.2   20.2
+  none                                       0.373      3x4   62.5%   98.8%    12%   41.3   27.5
+  sampling standardization                   0.264      2x3   65.2%   98.7%    12%   29.3   14.6
+  sampling standardization                   0.264      3x3   70.1%   98.7%    15%   40.4   20.2
+  sampling standardization                   0.264      4x3   74.0%   98.8%    17%   51.7   25.9
+  sampling standardization                   0.264      2x2   56.4%   98.8%    10%   30.2   10.1
+  sampling standardization                   0.264      2x4   70.3%   98.7%    13%   28.6   19.1
+  sampling standardization                   0.264      3x4   74.9%   98.9%    18%   39.8   26.5
+  standardization + duplicate assay          0.261      2x3   65.0%   98.8%    12%   29.2   14.6
+  standardization + duplicate assay          0.261      3x3   70.9%   98.9%    15%   40.2   20.1
+  standardization + duplicate assay          0.261      4x3   74.7%   99.0%    18%   51.7   25.8
+  standardization + duplicate assay          0.261      2x2   56.6%   98.7%    10%   30.2   10.1
+  standardization + duplicate assay          0.261      2x4   70.7%   98.7%    13%   28.5   19.0
+  standardization + duplicate assay          0.261      3x4   75.5%   98.9%    18%   39.7   26.4
+  hypothetical CV 0.15 (not reachable above) 0.150      2x3   81.8%   99.3%    24%   26.9   13.5
+  hypothetical CV 0.15 (not reachable above) 0.150      3x3   84.9%   99.4%    30%   38.3   19.1
+  hypothetical CV 0.15 (not reachable above) 0.150      4x3   86.8%   99.7%    35%   49.9   25.0
+  hypothetical CV 0.15 (not reachable above) 0.150      2x2   77.4%   99.0%    19%   27.7    9.2
+  hypothetical CV 0.15 (not reachable above) 0.150      2x4   84.5%   99.4%    29%   26.5   17.7
+  hypothetical CV 0.15 (not reachable above) 0.150      3x4   87.3%   99.6%    36%   37.9   25.3
+
+================================================================================================
+R5. EFFICIENT FRONTIER: SENSITIVITY VERSUS PROTOCOL DURATION
+================================================================================================
+  A design is on the frontier if no other design achieves at least the
+  same sensitivity in no more weeks and no more venipunctures.
+
+  package                                      design    sens   weeks   venip
+  ----------------------------------------------------------------------------
+  standardization + duplicate assay               2x4   70.7%    28.5    19.0
+  standardization + duplicate assay               2x3   65.0%    29.2    14.6
+  sampling standardization                        2x3   65.2%    29.3    14.6
+  standardization + duplicate assay               2x2   56.6%    30.2    10.1
+  none                                            2x4   55.8%    30.2    20.2
+  none                                            2x3   49.3%    30.8    15.4
+  none                                            2x2   38.4%    31.5    10.5
+  standardization + duplicate assay               3x4   75.5%    39.7    26.4
+  standardization + duplicate assay               3x3   70.9%    40.2    20.1
+  none                                            3x4   62.5%    41.3    27.5
+  none                                            3x3   56.1%    42.0    21.0
+  standardization + duplicate assay               4x3   74.7%    51.7    25.8
+  none                                            4x3   61.1%    53.3    26.6
+
+================================================================================================
+R5. THE LEVERS ARE NOT INDEPENDENT
+================================================================================================
+  Starting point: no standardization, 2x3 design, CV 0.373, sensitivity 49.3%
+
+  add sampling standardization, keep 2x3          sens  65.2% (+15.9 pp),  29.3 wk,  14.6 venip
+  keep CV, go to 4 cycles                         sens  61.1% (+11.8 pp),  53.3 wk,  26.6 venip
+  keep CV, 4 measurements per period              sens  55.8% ( +6.5 pp),  30.2 wk,  20.2 venip
+  standardization AND 3 cycles                    sens  70.1% (+20.8 pp),  40.4 wk,  20.2 venip
+  standardization AND 4 measurements per period   sens  70.3% (+20.9 pp),  28.6 wk,  19.1 venip
+
+  Standardization alone: +15.9 pp. Doubling cycles alone: +11.8 pp.
+  Both (standardization + one extra cycle): +20.8 pp, against +27.7 pp if the two gains added.
+  The levers act on the same standard error, so their effects are
+  sub-additive; treating them as independent double counts the benefit.
+
+================================================================================================
+R14. THE EFFICIENCY CONCLUSION UNDER ALL THREE VARIANCE SPLITS
+================================================================================================
+  For each split the 2x3 design with no standardization is the baseline.
+  Burden is weeks, venipunctures, and a qualitative patient-effort score
+  (0 none, 1 timed fasting draws and a dietary log, 2 as 1 plus repeat
+  assay logistics). Patient effort is not commensurable with weeks and is
+  reported separately rather than folded into one index.
+
+  split         lever                                    CV    sens    gain   weeks  venip effort
+  -----------------------------------------------------------------------------------------------
+  optimistic    baseline: no standardization, 2x3     0.372   49.4%            30.9   15.4      0
+  optimistic    standardization, 2x3                  0.219   71.3%   +21.9    28.4   14.2      1
+  optimistic    standardization + duplicate, 2x3      0.215   72.1%   +22.7    28.3   14.2      2
+  optimistic    no standardization, 2x4               0.372   56.1%    +6.7    30.3   20.2      0
+  optimistic    no standardization, 4x3               0.372   61.1%   +11.7    53.2   26.6      0
+  optimistic    standardization, 2x4                  0.219   76.3%   +26.9    27.8   18.6      1
+
+  intermediate  baseline: no standardization, 2x3     0.373   49.3%            30.8   15.4      0
+  intermediate  standardization, 2x3                  0.264   65.2%   +15.9    29.3   14.6      1
+  intermediate  standardization + duplicate, 2x3      0.261   65.0%   +15.7    29.2   14.6      2
+  intermediate  no standardization, 2x4               0.373   55.8%    +6.5    30.2   20.2      0
+  intermediate  no standardization, 4x3               0.373   61.1%   +11.8    53.3   26.6      0
+  intermediate  standardization, 2x4                  0.264   70.3%   +20.9    28.6   19.1      1
+
+  pessimistic   baseline: no standardization, 2x3     0.372   49.4%            30.9   15.4      0
+  pessimistic   standardization, 2x3                  0.302   59.4%   +10.0    30.0   15.0      1
+  pessimistic   standardization + duplicate, 2x3      0.299   59.8%   +10.5    29.9   15.0      2
+  pessimistic   no standardization, 2x4               0.372   56.1%    +6.7    30.3   20.2      0
+  pessimistic   no standardization, 4x3               0.372   61.1%   +11.7    53.2   26.6      0
+  pessimistic   standardization, 2x4                  0.302   65.2%   +15.8    29.2   19.5      1
+
+
+================================================================================================
+R14. IS STANDARDIZATION STILL THE BETTER LEVER IN EVERY SPLIT?
+================================================================================================
+  split             standardization   double cycles   extra weeks   which lever wins on sensitivity
+  ------------------------------------------------------------------------------------------------
+  optimistic                  21.9            11.7            22   standardization
+  intermediate                15.9            11.8            22   standardization
+  pessimistic                 10.0            11.7            22   DOUBLING CYCLES
+
+  The conclusion does not hold in all three splits. Standardization wins
+  comfortably when two-thirds of the biological variance is standardizable
+  (+21.9 against +11.7) and narrowly at one-half (+15.9 against +11.8), but at
+  one-third it loses on sensitivity (+10.0 against +11.7). It still costs no
+  additional weeks, so a trialist who values calendar time may prefer it even
+  there; a trialist who values sensitivity alone should not. Reporting the
+  intermediate split alone, as an earlier version did, concealed a sign change
+  rather than merely a change of magnitude.
+
+  Reproduce with: python3 validation/efficiency_analysis.py
+
+##############################################################################
+# published_cohorts.py
+##############################################################################
+
+====================================================================================================
+R6. INPUT PARAMETERS AND THEIR PROVENANCE
+====================================================================================================
+  study                                          N  N provenance                                    
+  --------------------------------------------------------------------------------------------------
+  Schulman 2006 dose-ranging (AST-120)         200  Monte Carlo size (trial N not extracted)        
+  CAP-KD (Akizawa 2009)                        460  trial N, AJKD 2009;54:459-467                   
+  EPPIC-1 and EPPIC-2 (Schulman 2015)         2035  trial N, JASN 2015;26:1732-1746                 
+  Rossi SYNERGY synbiotic (2016)                37  trial N, CJASN 2016;11:223-231                  
+  Esgalhado resistant starch crossover (2020)    26  trial N, Food Funct 2020;11:2617-2625           
+  Sirich fiber parallel (2014)                  40  trial N, CJASN 2014;9:1603-1610                 
+  2025 fiber meta-analysis, IS outcome         398  pooled N for the IS outcome (11 RCTs, 200 + 198)
+
+  study                                        tau  effect provenance                               
+  --------------------------------------------------------------------------------------------------
+  Schulman 2006 dose-ranging (AST-120)        0.35  dose-dependent IS lowering, AJKD 2006;47:565-577
+  CAP-KD (Akizawa 2009)                       0.35  ASSUMED equal to Schulman 2006; CAP-KD reports no IS
+  EPPIC-1 and EPPIC-2 (Schulman 2015)         0.35  ASSUMED; EPPIC reports no IS outcome at all     
+  Rossi SYNERGY synbiotic (2016)              0.14  reported IS reduction ~12-14%                   
+  Esgalhado resistant starch crossover (2020)  0.25  reported IS reduction ~25%                      
+  Sirich fiber parallel (2014)                0.25  reported IS reduction ~25%                      
+  2025 fiber meta-analysis, IS outcome        0.25  SMD -0.34 does not convert to a percentage; 0.25 assumed
+
+  study                                       tau SD  NR frac   status
+  --------------------------------------------------------------------------------------------------
+  Schulman 2006 dose-ranging (AST-120)          0.15     0.15   BOTH ASSUMED (no source)
+  CAP-KD (Akizawa 2009)                         0.15     0.15   BOTH ASSUMED (no source)
+  EPPIC-1 and EPPIC-2 (Schulman 2015)           0.15     0.15   BOTH ASSUMED (no source)
+  Rossi SYNERGY synbiotic (2016)                0.10     0.30   BOTH ASSUMED (no source)
+  Esgalhado resistant starch crossover (2020)    0.12     0.20   BOTH ASSUMED (no source)
+  Sirich fiber parallel (2014)                  0.13     0.20   BOTH ASSUMED (no source)
+  2025 fiber meta-analysis, IS outcome          0.14     0.18   BOTH ASSUMED (no source)
+
+====================================================================================================
+R6. OPERATING CHARACTERISTICS (primary rule, CV = 0.25, mean of 50 replications, seeds 700-749)
+====================================================================================================
+  Read as parameter sensitivity, not external validation: no
+  individual-patient data from any of these trials were available.
+
+  study                                          N   resp    sens    spec   weak
+  ------------------------------------------------------------------------------
+  Schulman 2006 dose-ranging (AST-120)         200    161   72.4%   98.9%    13%
+  CAP-KD (Akizawa 2009)                        460    373   72.1%   99.0%    13%
+  EPPIC-1 and EPPIC-2 (Schulman 2015)         2035   1641   72.2%   98.9%    13%
+  Rossi SYNERGY synbiotic (2016)                37     17   26.5%   98.3%    11%
+  Esgalhado resistant starch crossover (2020)    26     19   50.1%   97.4%     9%
+  Sirich fiber parallel (2014)                  40     28   55.6%   98.9%    14%
+  2025 fiber meta-analysis, IS outcome         398    279   54.0%   98.6%    13%
+
+  The three AST-120 rows share one assumed effect size because only
+  Schulman 2006 measured indoxyl sulfate. Their differing operating
+  characteristics reflect cohort size alone, which is the point: an
+  effect attributed to EPPIC would be an attribution error, not a
+  finding.
+
+  Reproduce with: python3 validation/published_cohorts.py
+
+##############################################################################
+# threshold_sensitivity.py
+##############################################################################
+============================================================================================
+TABLE S4. OPERATING CHARACTERISTICS BY TRUE-RESPONDER THRESHOLD (single run, CV = 0.15)
+============================================================================================
+    theta  responders  non-resp|   zero-null H0 tau<=0   |  primary H0 tau<=theta  
+                               |     sens    spec     S2|     sens    spec     S2
+  ------------------------------------------------------------------------------------------
+       5%         795       205|    89.9%   89.3%    23%|    84.4%   97.6%    25%
+      10%         735       265|    95.1%   85.7%    23%|    83.4%   99.2%    26%
+      15%         678       322|    97.5%   76.4%    23%|    78.6%   99.1%    24%
+      20%         608       392|    99.2%   65.8%    23%|    76.0%   99.5%    25%
+
+  Under the zero-null rule specificity falls from 89% to 66% as the
+  definition is tightened, purely because patients whose true effect
+  lies between 0 and theta are relabelled non-responders while the test
+  still asks whether their effect exceeds 0. Under the primary rule the
+  margin tracks the definition and no such artifact arises.
+
+  Reproduce with: python3 validation/threshold_sensitivity.py
+
+##############################################################################
+# nonresponder_fraction_sensitivity.py
+##############################################################################
+================================================================================================
+TABLE S5. OPERATING CHARACTERISTICS BY IMPOSED NON-RESPONDER FRACTION
+(mean of 50 replications, seeds 700-749, N = 1000, CV = 0.15)
+================================================================================================
+   imposed   resp  non-resp|         zero-null         |        primary rule       
+                           |         sens         spec|         sens         spec
+  ----------------------------------------------------------------------------------------------
+       10%    809       191|    95.1+-0.7     84.8+-2.8 |    81.8+-0.9     99.3+-0.6   
+       18%    735       265|    95.2+-0.6     85.8+-2.2 |    81.9+-1.1     99.3+-0.5   reference
+       20%    718       282|    95.2+-0.7     85.5+-2.0 |    82.1+-1.0     99.4+-0.5   
+       30%    611       389|    95.3+-0.9     85.5+-1.9 |    82.3+-1.1     99.3+-0.4   
+
+  Across a threefold change in the imposed fraction, sensitivity and
+  specificity move by less than two points under either rule. The
+  assumption is therefore not what drives the reported operating
+  characteristics; the decision rule and the CV are.
+
+  Reproduce with: python3 validation/nonresponder_fraction_sensitivity.py
+
+##############################################################################
+# threshold_approximation_check.py
+##############################################################################
+====================================================================================
+DECISION-THRESHOLD APPROXIMATION ACCURACY
+====================================================================================
+  Analytic DT6 = 14.25%   null patients per scenario = 400,000   seed = 20260727
+  AR(1) within blocks of 3; 2 independent blocks per arm
+
+  scenario                      empirical p95   diff (pp)  empirical alpha
+  --------------------------------------------------------------------------
+  Gaussian, iid (reference)            13.32%       -0.93            3.84%
+  Log-normal IS baseline               13.34%       -0.91            3.89%
+  Heteroscedastic CV                   13.79%       -0.45            4.50%
+  AR(1) rho = 0.3                      15.94%       +1.69            7.22%
+  AR(1) rho = 0.5                      17.64%       +3.39            9.64%
+
+  Largest absolute deviation: 3.39 percentage points
+  The approximation holds within 1 pp under the distributional violations
+  and is mildly conservative there (empirical alpha below the nominal 5%).
+  It breaks only under within-period serial correlation, where the analytic
+  threshold is too permissive and the empirical Type I error rises above 5%.
+  That is the direct cause of the specificity loss in scenarios D and D'.
+
+  ANALYTIC CROSS-CHECK (independent of the simulation)
+     rho   SD inflation   DT6 x inflation
+  ---------------------------------------
+     0.0          1.000            14.25%
+     0.3          1.208            17.21%
+     0.5          1.354            19.29%
+
+  The inflation factor is [BLOCK + 2*sum((BLOCK-k)*rho^k)] / BLOCK, which does
+  not depend on the number of blocks. Serial correlation therefore multiplies
+  every design's threshold by the same constant and leaves the comparison
+  between the two design levers unchanged: CV still enters DT linearly and the
+  measurement count still as 1/sqrt(n).
+
+  design      CV   n    DT iid   DT rho=0.5
+  -----------------------------------------
+  2x3       0.25   6     23.7%        32.1%
+  2x3       0.15   6     14.2%        19.3%
+  4x3       0.25  12     16.8%        22.7%
+  3x3       0.15   9     11.6%        15.7%
+
+  DT(CV=0.15, n=6) / DT(CV=0.25, n=12) = 0.8485, identical at every rho.

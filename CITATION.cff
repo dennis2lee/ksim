@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: >-
+  If you use this code, please cite it using the metadata below. Without this
+  file both GitHub and Zenodo infer authorship from the account that owns the
+  repository, which would drop the second author from the archived record.
+type: software
+title: >-
+  ksim: simulation code for reachable measurement precision and the cost of a
+  mismatched null in n-of-1 biomarker trials
+abstract: >-
+  A single generative model, protocol runner and validation suite for an
+  in-silico two-stage n-of-1 crossover design in chronic kidney disease, with
+  serum indoxyl sulfate as the case biomarker. One command regenerates every
+  number in the accompanying manuscript and its supplement, with Python
+  warnings promoted to errors. This is a research simulation framework and a
+  candidate trial design, not a clinical decision tool.
+authors:
+  - family-names: Lee
+    given-names: Pyeongwoo
+    orcid: 'https://orcid.org/0009-0007-9339-203X'
+  - family-names: Lee
+    given-names: Timothy Juheon
+    orcid: 'https://orcid.org/0009-0004-7361-4430'
+version: 1.0.0
+date-released: '2026-08-12'
+license: MIT
+repository-code: 'https://github.com/dennis2lee/ksim'
+keywords:
+  - n-of-1 trials
+  - clinical trial simulation
+  - measurement variability
+  - variance components
+  - sequential decision rules
+  - indoxyl sulfate
+  - chronic kidney disease
