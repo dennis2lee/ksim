@@ -44,9 +44,12 @@ against 11.7 to 11.8 points for doubling the number of crossover cycles at a
 cost of 22 additional weeks. Under the pessimistic split the comparison
 reverses: standardization buys 10.0 points and doubling the cycles buys 11.7, so
 the general claim that standardization is the better lever does not hold and is
-not made here. All three comparisons are made at CV values a standardization
-package can actually reach, which is 0.22 to 0.30 rather than the 0.15 assumed
-in earlier versions of this work.
+not made here. All three comparisons are made at the model-implied CV range
+for a standardization package under the assumed variance decomposition, which
+is 0.22 to 0.30 rather than the 0.15 assumed in earlier versions of this work.
+That range is computed, not measured: no study has divided the within-person
+biological variation of indoxyl sulfate in CKD into a standardizable and an
+irreducible part.
 
 ## Repository Structure
 
