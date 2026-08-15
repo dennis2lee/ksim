@@ -131,8 +131,17 @@ diffed against your own run rather than taken on trust.
 
 ## Citing this code
 
-The version accompanying the submitted manuscript is tagged in this repository.
-Cite the tag rather than the branch: `main` moves, a tag does not.
+The version accompanying the submitted manuscript is release `v1.0.0`, archived
+on Zenodo with a persistent identifier:
+
+> Lee P, Lee TJ. *ksim: simulation code for reachable measurement precision and
+> the cost of a mismatched null in n-of-1 biomarker trials.* Version 1.0.0.
+> Zenodo; 2026. doi:10.5281/zenodo.21953683
+
+Cite the release rather than the branch: `main` moves, a release does not. The
+DOI above resolves to that exact version. If you instead want to point at the
+project across all its versions, use the concept DOI 10.5281/zenodo.21953682,
+which always resolves to the newest release.
 
 ## Key Results
 
@@ -214,10 +223,16 @@ decisions without empirical validation.
 
 ## Citation
 
+To cite the manuscript this code accompanies:
+
 ```
 Lee P, Lee TJ. Reachable Measurement Precision and the Cost of a Mismatched Null
 in N-of-1 Biomarker Trials: An In Silico Study in Chronic Kidney Disease. 2026.
+Manuscript submitted for publication.
+```
 
+To cite the code itself, see [Citing this code](#citing-this-code) above, which
+gives the archived DOI.
 
 ## Author
 
