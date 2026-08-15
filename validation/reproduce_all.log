@@ -13,6 +13,11 @@
 # This file and the documentation committed alongside it were added after the
 # run; no analysis script changed, so the transcript describes the code as
 # tagged. Diff your own run against this file rather than taking it on trust.
+#
+# Re-verified for release v1.1.0, after twenty out-of-scope files moved to
+# legacy/: a fresh clone in a new virtual environment reproduced all 2,144
+# numeric tokens of this transcript exactly. The separation touched no analysis
+# script and changed no result.
 ##############################################################################
 
 

@@ -21,18 +21,18 @@ authors:
   - family-names: Lee
     given-names: Timothy Juheon
     orcid: 'https://orcid.org/0009-0004-7361-4430'
-version: 1.0.0
-doi: 10.5281/zenodo.21953683
-date-released: '2026-08-12'
+version: 1.1.0
+doi: 10.5281/zenodo.21953682
+date-released: '2026-08-15'
 license: MIT
 repository-code: 'https://github.com/dennis2lee/ksim'
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.21953683
-    description: Version 1.0.0, the release accompanying the submitted manuscript
-  - type: doi
     value: 10.5281/zenodo.21953682
     description: Concept DOI, always resolving to the newest release
+  - type: doi
+    value: 10.5281/zenodo.21953683
+    description: Version DOI of release v1.0.0, superseded by v1.1.0
 keywords:
   - n-of-1 trials
   - clinical trial simulation

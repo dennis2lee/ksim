@@ -125,17 +125,18 @@ diffed against your own run rather than taken on trust.
 
 ## Citing this code
 
-The version accompanying the submitted manuscript is release `v1.0.0`, archived
-on Zenodo with a persistent identifier:
+The version accompanying the submitted manuscript is release `v1.1.0`, archived
+on Zenodo:
 
 > Lee P, Lee TJ. *ksim: simulation code for reachable measurement precision and
-> the cost of a mismatched null in n-of-1 biomarker trials.* Version 1.0.0.
-> Zenodo; 2026. doi:10.5281/zenodo.21953683
+> the cost of a mismatched null in n-of-1 biomarker trials.* Version 1.1.0.
+> Zenodo; 2026. doi:10.5281/zenodo.21953682
 
-Cite the release rather than the branch: `main` moves, a release does not. The
-DOI above resolves to that exact version. If you instead want to point at the
-project across all its versions, use the concept DOI 10.5281/zenodo.21953682,
-which always resolves to the newest release.
+Cite a release rather than the branch: `main` moves, a release does not. The DOI
+above is the concept DOI, which always resolves to the newest release. Every
+release also gets its own version DOI, shown on that release's Zenodo record;
+cite the version DOI when you need to name one exact state of the code, as the
+manuscript does.
 
 ## Key Results
 
