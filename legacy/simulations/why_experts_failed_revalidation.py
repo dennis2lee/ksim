@@ -1,3 +1,15 @@
+# ARCHIVED. NOT PART OF THE PAPER.
+#
+# validation/reproduce_all.py does not run this file, and no result in
+# the manuscript or its supplement depends on it. It is kept as a record
+# of earlier work and is not maintained.
+#
+# This file argues for deprescribing as a clinical objective. The paper
+# makes no clinical recommendation.
+#
+# For what the paper actually does, read validation/nof1_core.py and the
+# thirteen scripts the README lists under "What the paper reproduces".
+
 """
 WHY HAVE EXPERTS NOT SOLVED CKD? -- and does OUR converged solution escape the same
 traps, or just repeat them? 10 critical-thinking passes: each pass names a root cause

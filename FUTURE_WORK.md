@@ -1,8 +1,11 @@
 # Future Research Roadmap
 
-Based on the current project state: in-silico n-of-1 protocol design validated on N=1,000
-virtual cohort, literature-calibrated parameters, CV-as-design-lever insight,
-six-step clinical protocol with decision engine, and manuscript targeting CPT:PSP.
+Based on the current project state: an in-silico n-of-1 protocol design evaluated
+on a 1,000-patient virtual cohort with literature-calibrated parameters, the
+measurement CV treated as a design lever, and a manuscript under review at the
+British Journal of Clinical Pharmacology.
+
+This is a roadmap of work not yet done. Nothing in it is a finding of the paper.
 
 ---
 

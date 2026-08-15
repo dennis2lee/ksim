@@ -1,3 +1,19 @@
+# ARCHIVED. NOT PART OF THE PAPER.
+#
+# validation/reproduce_all.py does not run this file, and no result in
+# the manuscript or its supplement depends on it. It is kept as a record
+# of earlier work and is not maintained.
+#
+# This file sets CV_TARGET = 0.15 and calls it achievable, derives its
+# thresholds from a zero-effect null with no alpha-spending, and prints
+# treatment actions including deprescribing. The paper reaches the
+# opposite conclusion on all three: CV 0.15 is not reachable, the rule
+# tests H0: tau <= 0.10 with calibrated alpha-spending, and no clinical
+# decision rule was validated.
+#
+# For what the paper actually does, read validation/nof1_core.py and the
+# thirteen scripts the README lists under "What the paper reproduces".
+
 """
 OPERATIONAL CLINICAL PROTOCOL: n-of-1 gut-clearance trial for individual CKD patients.
 

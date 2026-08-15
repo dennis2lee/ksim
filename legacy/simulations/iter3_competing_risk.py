@@ -1,3 +1,15 @@
+# ARCHIVED. NOT PART OF THE PAPER.
+#
+# validation/reproduce_all.py does not run this file, and no result in
+# the manuscript or its supplement depends on it. It is kept as a record
+# of earlier work and is not maintained.
+#
+# This file is exploratory work on toxin models and intervention
+# engineering. It informed no number in the paper.
+#
+# For what the paper actually does, read validation/nof1_core.py and the
+# thirteen scripts the README lists under "What the paper reproduces".
+
 """
 ITERATION 3 of autonomous loop. Two honesty fixes + a decision output.
   (1) COMPETING RISK: a 74yo with stage-4 CKD faces real annual hazard of death /

@@ -1,3 +1,15 @@
+# ARCHIVED. NOT PART OF THE PAPER.
+#
+# validation/reproduce_all.py does not run this file, and no result in
+# the manuscript or its supplement depends on it. It is kept as a record
+# of earlier work and is not maintained.
+#
+# This file is exploratory work on toxin models and intervention
+# engineering. It informed no number in the paper.
+#
+# For what the paper actually does, read validation/nof1_core.py and the
+# thirteen scripts the README lists under "What the paper reproduces".
+
 """
 ITERATION 2 of autonomous loop.
 The infeasible high-benefit arms (novel molecule, engineered strain, Na-alkali,

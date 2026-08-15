@@ -1,3 +1,15 @@
+# ARCHIVED. NOT PART OF THE PAPER.
+#
+# validation/reproduce_all.py does not run this file, and no result in
+# the manuscript or its supplement depends on it. It is kept as a record
+# of earlier work and is not maintained.
+#
+# This file scores a quarterly deprescribing review as a design option.
+# That argument is withdrawn in LIMITATIONS.md (g).
+#
+# For what the paper actually does, read validation/nof1_core.py and the
+# thirteen scripts the README lists under "What the paper reproduces".
+
 """
 RED-TEAM REFINEMENT ENGINE. Repeats the critique->fix->rescore loop greedily:
 each round an 'expert' attacks the WEAKEST component of the current design, the

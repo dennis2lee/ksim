@@ -51,56 +51,50 @@ That range is computed, not measured: no study has divided the within-person
 biological variation of indoxyl sulfate in CKD into a standardizable and an
 irreducible part.
 
-## Repository Structure
+## What the paper reproduces
+
+Everything in the manuscript and its supplement comes from `validation/`, and
+nothing else in this repository contributes a number to either. `reproduce_all.py`
+runs exactly the thirteen scripts below, in this order, and all thirteen import
+the same generative model.
 
 ```
 ksim/
-├── simulations/          14 scripts — toxin models and intervention engineering
-│   ├── gut_clearance_model.py          Baseline IS/PCS/urea generation & clearance
-│   ├── drug_dev_simulation.py          Monte Carlo (N=20K), adherence, dose-response
-│   ├── iter1_safety_feasibility.py     Side effects, feasibility gates, dialysis delay
-│   ├── iter2_creative_bypass.py        Replace infeasible arms with deployable alternatives
-│   ├── iter3_competing_risk.py         74-year-old competing risk model
-│   ├── iter4_what_moves_needle.py      Toxin route vs AKI/CV prevention
-│   ├── iter5_toxin_mortality_coupling.py  f_tox parameter sweep
-│   ├── devA_sachet_formulation.py      Optimal fiber blend (RS/inulin/acacia)
-│   ├── devC_collision_timing.py        Sorbent–probiotic timing separation
-│   ├── dev_ketoacid_protein.py         Protein target + ketoacid optimization
-│   ├── dev_integration_validation.py   Naive vs engineered stack comparison
-│   ├── final_outcome_and_redteam.py    AST-120 drug interaction analysis
-│   ├── redteam_loop.py                 15-round adversarial refinement (R: 48→82)
-│   └── why_experts_failed_revalidation.py  10-pass expert failure escape analysis
-│
-├── protocol/             3 scripts — n-of-1 design and candidate classification rule
-│   ├── nof1_virtual_cohort.py          N=100 virtual cohort, crossover power analysis
-│   ├── nof1_weak_rescue.py             Weak responder strategies (adaptive + CV reduction)
-│   └── clinical_protocol.py            Step-by-step protocol + classify_patient() function
-│
-├── validation/           one generative model, plus the analyses that call it
-│   ├── nof1_core.py                    THE model: cohort, measurement, protocol, decision rules
-│   ├── reproduce_all.py                One command; regenerates every published number
-│   ├── requirements.txt                Pinned environment
-│   ├── reproduce_manuscript_numbers.py Cohort, Table 1, Table 2, inline numbers
-│   ├── decision_rule_analysis.py       Decision rules, CV sweep, cost-ratio sensitivity
-│   ├── sequential_error_validation.py  Held-out boundary validation, Monte Carlo error
-│   ├── correlation_boundary_analysis.py Correlation-adjusted decision boundaries
-│   ├── protocol_dependence_analysis.py Onset, washout, carryover, adherence
-│   ├── robustness_experiments.py       Reference plus 8 distributional stress conditions
-│   ├── crossover_order_analysis.py     Cycle order and period effects
-│   ├── variance_components_analysis.py Variance components, attrition, adherence
-│   ├── efficiency_analysis.py          Joint design efficiency on a common burden scale
-│   ├── published_cohorts.py            Cohorts parameterized to published trials
-│   ├── threshold_sensitivity.py        Responder-definition threshold sweep
-│   ├── nonresponder_fraction_sensitivity.py
-│   ├── threshold_approximation_check.py Critical-value accuracy vs the empirical null
-│   ├── sensitivity_analysis.py         Tornado sweep across literature-calibrated params
-│   ├── literature_recalibration.py     Before/after comparison with published data
-│   └── novelty_and_gap_analysis.py     RCT vs n-of-1 gap quantification
-│
-├── LIMITATIONS.md        Known limitations and anticipated reviewer responses
-├── FUTURE_WORK.md        Research roadmap (14 directions, prioritized)
-└── README.md             This file
+└── validation/           the paper, and only the paper
+    ├── nof1_core.py                      THE model: cohort, measurement, protocol, decision rules
+    ├── reproduce_all.py                  One command; runs the thirteen scripts below
+    ├── requirements.txt                  Pinned environment (Python 3.14.6, NumPy 2.4.6)
+    ├── reproduce_all.log                 Transcript of a clean-environment run, to diff against
+    │
+    ├── reproduce_manuscript_numbers.py   Cohort, Table 1, Table 2, inline numbers
+    ├── decision_rule_analysis.py         Decision rules, CV sweep, cost-ratio sensitivity
+    ├── sequential_error_validation.py    Held-out boundary validation, CV audit, Monte Carlo error
+    ├── correlation_boundary_analysis.py  Correlation-adjusted decision boundaries
+    ├── protocol_dependence_analysis.py   Onset, washout, carryover, adherence
+    ├── robustness_experiments.py         Reference plus 8 distributional stress conditions
+    ├── crossover_order_analysis.py       Cycle order and period effects
+    ├── variance_components_analysis.py   Variance components, attrition, adherence
+    ├── efficiency_analysis.py            Joint design efficiency on a common burden scale
+    ├── published_cohorts.py              Cohorts parameterized to published trials
+    ├── threshold_sensitivity.py          Responder-definition threshold sweep
+    ├── nonresponder_fraction_sensitivity.py
+    └── threshold_approximation_check.py  Critical-value accuracy vs the empirical null
 ```
+
+Supporting documents: `LIMITATIONS.md` (what the work does not establish, including
+two conclusions withdrawn from earlier versions), `FUTURE_WORK.md` (research
+roadmap), `CITATION.cff` (citation metadata), `LICENSE`.
+
+### What is out of scope
+
+`legacy/` holds twenty files of earlier exploratory work: the intervention
+engineering that preceded this design, a candidate clinical protocol, and three
+superseded analyses. **None of it is run by `reproduce_all.py` and none of it is
+maintained.** Several of those files state conclusions this paper reverses, in
+particular that a CV of 0.15 is achievable and that a classification licenses
+deprescribing. Each carries a header naming what in it is superseded, and
+`legacy/README.md` collects them in one table. Read that before reading anything
+under `legacy/`.
 
 ## Quick Start
 
@@ -196,22 +190,28 @@ invariance, not an empirical result.
 | Non-responder fraction | 18% (scenario assumption) | Not estimable from published data; see Table S5 sweep |
 | Gut microbiome variability | SD 0.35 | Wu et al. 2011, *Science* |
 
-## Clinical Protocol Summary
+## Simulated Protocol Summary
 
-The protocol classifies individual CKD patients as IS responders or non-responders:
+This is the protocol as simulated. It has not been run on a patient, and the
+numbers below describe how it behaves under the model.
 
 1. **Eligibility**: CKD 3b–4, stable eGFR, IS assay available
-2. **Standardize**: Fasting AM draws and timed collection, reaching CV ≈ 0.26
+2. **Standardize**: Fasting AM draws and timed collection, giving a model-implied
+   CV near 0.26 under the assumed variance decomposition
 3. **Stage 1**: 2 × 3 crossover (24 weeks, 12 visits), period order randomized
    independently within each cycle
 4. **Classify** against H0: τ ≤ 10%, so the test matches the responder
-   definition: obs_red > 35.1% → Responder; obs_red < 10% → Non-responder;
+   definition: obs_red > 37.9% → Responder; obs_red < 10% → Non-responder;
    in between → Borderline
-5. **Stage 2**: Borderline patients get 1 extra cycle (wk 24–36), threshold 30.5%
+5. **Stage 2**: Borderline patients get 1 extra cycle (wk 24–36), threshold 27.8%
 6. **After classification**: The call records what the protocol demonstrated. It is not a recommendation to continue or stop treatment.
 
-The classification rule is implemented in `protocol/clinical_protocol.py` as the
-`classify_patient()` function — input IS measurements, output classification.
+Both thresholds are `0.10 + z · CV · √(2/n)` at CV 0.264, evaluated with the
+alpha-spending boundaries calibrated by simulation (α₁ = 0.033668 for n = 6,
+α₂ = 0.076598 for n = 9), not with an unadjusted one-sided 5% quantile. The rule
+is implemented in `validation/nof1_core.py` as `critical_value()` and
+`run_protocol()`; every table in the paper calls the same two functions, so the
+published thresholds and the code cannot drift apart.
 
 ## License
 

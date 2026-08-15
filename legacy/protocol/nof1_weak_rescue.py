@@ -1,3 +1,16 @@
+# ARCHIVED. NOT PART OF THE PAPER.
+#
+# validation/reproduce_all.py does not run this file, and no result in
+# the manuscript or its supplement depends on it. It is kept as a record
+# of earlier work and is not maintained.
+#
+# This file treats a reduction of CV from 0.22 to 0.15 as an available
+# design lever. The paper reports 0.15 as unreachable under the assumed
+# variance decomposition.
+#
+# For what the paper actually does, read validation/nof1_core.py and the
+# thirteen scripts the README lists under "What the paper reproduces".
+
 """
 WEAK RESPONDER RESCUE: boosted n-of-1 designs for tau 10-20%.
 
